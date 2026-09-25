@@ -371,22 +371,31 @@ function getSubjects_() {
 function createPairRequest_(params) {
   const { fromId, toId, subjectId, target } = params;
 
+  if (fromId === toId) throw new Error('자기 자신에게는 신청할 수 없습니다.');
   if (!isApplicationOpen_(subjectId)) throw new Error('응모가 마감되었습니다.');
 
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    // 1인 1페어 원칙 검사 (신청자 또는 상대방이 이미 성사된 활성 페어가 있는 경우)
     const pairs = getPairsList_();
-    const fromHasPair = pairs.some(p =>
-      p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
-    );
-    if (fromHasPair) throw new Error('이미 페어가 완료되었습니다.');
 
-    const toHasPair = pairs.some(p =>
+    // 1인당 최대 2개 페어 허용 (학급 인원 홀수 대비)
+    const fromCount = pairs.filter(p =>
+      p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
+    ).length;
+    if (fromCount >= 2) throw new Error('이미 최대 페어(2개)를 모두 완료했습니다.');
+
+    const toCount = pairs.filter(p =>
       p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+    ).length;
+    if (toCount >= 2) throw new Error('해당 친구는 이미 최대 페어(2개)를 모두 완료했습니다.');
+
+    // 동일 친구와 동일 과목 중복 페어 검사
+    const alreadyPaired = pairs.some(p =>
+      p.status === 'ACTIVE' && p.subjectId === subjectId &&
+      ((p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId))
     );
-    if (toHasPair) throw new Error('이미 페어가 완료되었습니다.');
+    if (alreadyPaired) throw new Error('이미 해당 친구와 동일 과목 페어가 성사되어 있습니다.');
 
     // 동일 친구에게 대기 중인 신청 검사
     const requests = getRequestsList_();
@@ -451,15 +460,17 @@ function acceptPairRequest_(params) {
 
     if (!isApplicationOpen_(subjectId)) throw new Error('신청 변경 기간이 마감되었습니다.');
 
-    // 1인 1페어 원칙 검사: 상대방 또는 본인이 이미 활성 페어가 있는지 확인
+    // 최대 2개 페어 검사
     const pairs = getPairsList_();
-    const fromHasPair = pairs.some(p =>
+    const fromCount = pairs.filter(p =>
       p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
-    );
-    const toHasPair = pairs.some(p =>
+    ).length;
+    if (fromCount >= 2) throw new Error('신청 학생이 이미 최대 페어(2개)를 모두 완료했습니다.');
+
+    const toCount = pairs.filter(p =>
       p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
-    );
-    if (fromHasPair || toHasPair) throw new Error('이미 페어가 완료되었습니다.');
+    ).length;
+    if (toCount >= 2) throw new Error('이미 최대 페어(2개)를 모두 완료했습니다.');
 
     // 신청 상태 변경
     sheet.getRange(idx + 1, 6).setValue('ACCEPTED');
@@ -470,12 +481,17 @@ function acceptPairRequest_(params) {
     const baseRange = Number(getSetting_('BASE_RANGE') || 5);
     pairSheet.appendRow([pairId, subjectId, fromId, toId, Number(row[4]), baseRange, 'ACTIVE', new Date().toISOString()]);
 
-    // 두 학생의 다른 모든 PENDING 신청 취소 처리
+    // 성사 후 2개 페어가 꽉 찬 학생의 남은 PENDING 신청만 취소 처리
+    const newFromCount = fromCount + 1;
+    const newToCount = toCount + 1;
     for (let i = 1; i < data.length; i++) {
       if (i !== idx && String(data[i][5]) === 'PENDING') {
         const f = String(data[i][2]);
         const t = String(data[i][3]);
-        if (f === fromId || t === fromId || f === toId || t === toId) {
+        if (newFromCount >= 2 && (f === fromId || t === fromId)) {
+          sheet.getRange(i + 1, 6).setValue('CANCELLED');
+        }
+        if (newToCount >= 2 && (f === toId || t === toId)) {
           sheet.getRange(i + 1, 6).setValue('CANCELLED');
         }
       }

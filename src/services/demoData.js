@@ -201,19 +201,28 @@ export function handleDemoApi(action, params) {
 
     case 'createPairRequest': {
       const { fromId, toId, subjectId, target } = params;
+      if (fromId === toId) return { error: '자기 자신에게는 신청할 수 없습니다.' };
       if (!demoState.applicationStatus.globalOpen || !demoState.applicationStatus.subjects[subjectId]) {
         return { error: '응모가 마감되었습니다.' };
       }
-      // 1인 1페어 원칙: 신청자 또는 상대방이 이미 성사된 페어가 있는지 검사
-      const fromHasActivePair = demoState.pairs.some(p =>
-        p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
-      );
-      if (fromHasActivePair) return { error: '이미 페어가 완료되었습니다.' };
 
-      const toHasActivePair = demoState.pairs.some(p =>
+      // 1인당 최대 2개 페어 허용 (학급 인원 홀수 대비)
+      const fromCount = demoState.pairs.filter(p =>
+        p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
+      ).length;
+      if (fromCount >= 2) return { error: '이미 최대 페어(2개)를 모두 완료했습니다.' };
+
+      const toCount = demoState.pairs.filter(p =>
         p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+      ).length;
+      if (toCount >= 2) return { error: '해당 친구는 이미 최대 페어(2개)를 모두 완료했습니다.' };
+
+      // 동일 친구와 동일 과목 중복 페어 검사
+      const alreadyPairedTogether = demoState.pairs.some(p =>
+        p.status === 'ACTIVE' && p.subjectId === subjectId &&
+        ((p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId))
       );
-      if (toHasActivePair) return { error: '이미 페어가 완료되었습니다.' };
+      if (alreadyPairedTogether) return { error: '이미 해당 친구와 동일 과목 페어가 성사되어 있습니다.' };
 
       // 동일 상대에게 대기 중인 신청 검사
       const hasPending = demoState.requests.some(r =>
@@ -241,15 +250,18 @@ export function handleDemoApi(action, params) {
         return { error: '신청 변경 기간이 마감되었습니다.' };
       }
 
-      // 1인 1페어 검사: 두 학생 중 누구라도 이미 활성 페어가 성사된 경우
-      const fromHasPair = demoState.pairs.some(p =>
+      // 최대 2개 페어 검사
+      const fromCount = demoState.pairs.filter(p =>
         p.status === 'ACTIVE' && (p.studentA === req.fromId || p.studentB === req.fromId)
-      );
-      const toHasPair = demoState.pairs.some(p =>
+      ).length;
+      if (fromCount >= 2) {
+        return { error: '신청 학생이 이미 최대 페어(2개)를 모두 완료했습니다.' };
+      }
+      const toCount = demoState.pairs.filter(p =>
         p.status === 'ACTIVE' && (p.studentA === req.toId || p.studentB === req.toId)
-      );
-      if (fromHasPair || toHasPair) {
-        return { error: '이미 페어가 완료되었습니다.' };
+      ).length;
+      if (toCount >= 2) {
+        return { error: '이미 최대 페어(2개)를 모두 완료했습니다.' };
       }
 
       req.status = 'ACCEPTED';
@@ -265,10 +277,16 @@ export function handleDemoApi(action, params) {
       };
       demoState.pairs.push(pair);
 
-      // 성사된 두 학생의 다른 모든 PENDING 신청 자동 취소 처리
+      // 성사 후 2개 페어가 꽉 찬 학생의 남은 PENDING 신청만 정리
+      const newFromCount = fromCount + 1;
+      const newToCount = toCount + 1;
+
       demoState.requests.forEach(r => {
         if (r.requestId !== requestId && r.status === 'PENDING') {
-          if (r.fromId === req.fromId || r.toId === req.fromId || r.fromId === req.toId || r.toId === req.toId) {
+          if (newFromCount >= 2 && (r.fromId === req.fromId || r.toId === req.fromId)) {
+            r.status = 'CANCELLED';
+          }
+          if (newToCount >= 2 && (r.fromId === req.toId || r.toId === req.toId)) {
             r.status = 'CANCELLED';
           }
         }

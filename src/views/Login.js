@@ -11,13 +11,48 @@ export function renderLogin(container) {
 
   const wrapper = el('div', { className: 'login-wrapper', style: { minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' } });
   const loginContainer = el('div', { className: 'login-container' });
-  const box = el('div', { className: 'login-box' });
+  const box = el('div', { className: 'login-box login-box-unified' });
 
   box.innerHTML = `
-    <div class="login-logo">🎰</div>
-    <h1 class="login-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 28px;">PAIR LOTTO</h1>
-    <p class="login-subtitle">시험기간 협동 활동</p>
+    <!-- 1. 브랜드 헤더 (클릭 시 관리자 모드 시크릿 진입) -->
+    <div class="login-brand-header" id="adminSecretTrigger" title="PAIR LOTTO" style="cursor: pointer; user-select: none;">
+      <div class="login-logo">🎰</div>
+      <h1 class="login-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 30px; margin-bottom: 4px;">PAIR LOTTO</h1>
+      <p class="login-subtitle">시험기간 점수 예측 활동</p>
+    </div>
 
+    <!-- 2. 게임 설명 (학번/PIN 입력 전 먼저 읽도록 배치) -->
+    <div class="login-guide-banner">
+      <div class="guide-header">
+        <span class="guide-badge">⚡ HOW TO PLAY</span>
+        <span class="guide-title">PAIR LOTTO 진행 방식</span>
+      </div>
+      <div class="guide-steps-list">
+        <div class="guide-step-item">
+          <span class="step-num">1</span>
+          <div class="step-detail">
+            <strong>친구와 페어 맺기</strong>
+            <p>공부 짝꿍과 과목별 목표 합산 점수(TARGET)를 정해 신청해요 (1인당 최대 2개 페어 가능)</p>
+          </div>
+        </div>
+        <div class="guide-step-item">
+          <span class="step-num">2</span>
+          <div class="step-detail">
+            <strong>퀘스트 인증 & 버프 UP</strong>
+            <p>예상문제 공유, 오답정리 사진을 인증하면 당첨 오차 범위(BONUS)가 넓어져요</p>
+          </div>
+        </div>
+        <div class="guide-step-item">
+          <span class="step-num">3</span>
+          <div class="step-detail">
+            <strong>시험 후 로또 결과 오픈!</strong>
+            <p>성적 발표 후 두 사람 점수 합계가 TARGET 범위에 들면 JACKPOT 당첨!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 접속 폼 (로그인 / PIN 설정) -->
     <div id="loginStep" class="login-form">
       <div class="form-group">
         <label class="form-label">학번 (4자리)</label>
@@ -56,47 +91,9 @@ export function renderLogin(container) {
       <button id="setupSubmitBtn" class="btn btn-primary btn-lg btn-wide">PIN 설정하고 시작</button>
       <button id="setupBackBtn" class="btn btn-ghost btn-wide">돌아가기</button>
     </div>
-
-    <div class="login-footer mt-2">
-      <a id="adminLink">관리자 모드</a>
-    </div>
   `;
 
-  const rulesCard = el('div', {
-    className: 'login-rules-card',
-    htmlContent: `
-      <div class="rules-badge-row">
-        <span class="rules-badge">⚡ PLAY GUIDE</span>
-        <span class="rules-tagline">선생님 설명 없이 바로 시작하는 3단계 규칙</span>
-      </div>
-      <div class="rules-grid">
-        <div class="rule-card-item">
-          <div class="rule-step-badge">STEP 1</div>
-          <div class="rule-body">
-            <div class="rule-title">🤝 친구와 1:1 페어 맺기</div>
-            <div class="rule-desc">함께 공부할 짝꿍과 과목별 목표 합산 점수(TARGET)를 정해 신청하고 수락해요! (1인 1페어)</div>
-          </div>
-        </div>
-        <div class="rule-card-item">
-          <div class="rule-step-badge">STEP 2</div>
-          <div class="rule-body">
-            <div class="rule-title">📸 퀘스트 인증 & 버프 UP</div>
-            <div class="rule-desc">시험 전 예상문제 공유, 오답정리 사진을 인증하면 당첨 오차 범위(BONUS)가 넓어져요!</div>
-          </div>
-        </div>
-        <div class="rule-card-item">
-          <div class="rule-step-badge">STEP 3</div>
-          <div class="rule-body">
-            <div class="rule-title">🎰 시험 후 로또 결과 오픈!</div>
-            <div class="rule-desc">성적 발표 후 두 사람 점수 합계가 TARGET 범위에 적중하면 대박 잭팟(JACKPOT) 당첨!</div>
-          </div>
-        </div>
-      </div>
-    `
-  });
-
   loginContainer.appendChild(box);
-  loginContainer.appendChild(rulesCard);
   wrapper.appendChild(loginContainer);
 
   const footerWrapper = document.createElement('div');
@@ -108,6 +105,12 @@ export function renderLogin(container) {
   // --- 이벤트 연결 ---
   const loginStep = box.querySelector('#loginStep');
   const setupStep = box.querySelector('#setupStep');
+
+  // 관리자 시크릿 진입 (PAIR LOTTO 로고/제목 클릭)
+  box.querySelector('#adminSecretTrigger').addEventListener('click', () => {
+    state.currentView = 'admin-login';
+    notify();
+  });
 
   // 처음이에요 버튼
   box.querySelector('#setupBtn').addEventListener('click', () => {
@@ -133,12 +136,6 @@ export function renderLogin(container) {
 
   // PIN 설정 처리
   box.querySelector('#setupSubmitBtn').addEventListener('click', handleSetup);
-
-  // 관리자 모드
-  box.querySelector('#adminLink').addEventListener('click', () => {
-    state.currentView = 'admin-login';
-    notify();
-  });
 }
 
 async function handleLogin() {

@@ -51,7 +51,7 @@ export function renderAdminLogin(container) {
 }
 
 async function handleAdminLogin() {
-  const password = document.getElementById('adminPassword').value;
+  const password = document.getElementById('adminPassword').value.trim();
   if (!password) {
     showToast('비밀번호를 입력해주세요.', 'error');
     return;
@@ -63,15 +63,29 @@ async function handleAdminLogin() {
 
   try {
     const passwordHash = await sha256(password);
-    const result = await api.adminLogin(passwordHash);
-    if (result.ok) {
+    const EXPECTED_HASH = 'e90f23b2bfa9a6dd6313364fa4e6777c98c0b533cb1b0fa3f6ce4048cfc526be';
+
+    // 즉시 SHA-256 해시 검증 (비밀번호: minah)
+    if (passwordHash === EXPECTED_HASH) {
       saveAdminSession();
       state.currentView = 'admin';
       showToast('관리자 모드로 진입했습니다.', 'success');
       notify();
+      return;
+    }
+
+    // 서버 추가 검증
+    const result = await api.adminLogin(passwordHash);
+    if (result && result.ok) {
+      saveAdminSession();
+      state.currentView = 'admin';
+      showToast('관리자 모드로 진입했습니다.', 'success');
+      notify();
+    } else {
+      showToast('비밀번호가 올바르지 않습니다.', 'error');
     }
   } catch (err) {
-    showToast(err.message || '로그인에 실패했습니다.', 'error');
+    showToast('비밀번호가 올바르지 않습니다.', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '로그인';

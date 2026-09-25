@@ -976,6 +976,108 @@ tr:hover td {
   cursor: pointer;
 }
 
+/* ---------- 통합 로그인 카드 (가독성 & 직관성 극대화) ---------- */
+.login-box-unified {
+  max-width: 450px !important;
+  padding: 32px 24px !important;
+}
+
+.login-brand-header {
+  transition: transform var(--transition);
+}
+
+.login-brand-header:hover {
+  transform: scale(1.02);
+}
+
+.login-brand-header .login-logo {
+  font-size: 42px;
+  margin-bottom: 4px;
+}
+
+.login-guide-banner {
+  background: rgba(14, 16, 36, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-radius: var(--radius);
+  padding: 16px 14px;
+  margin: 18px 0 20px;
+  text-align: left;
+  box-shadow: inset 0 0 16px rgba(139, 92, 246, 0.08);
+}
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.guide-badge {
+  background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
+  color: #0b0c1b;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.guide-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold);
+}
+
+.guide-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.guide-step-item .step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 209, 102, 0.2);
+  color: var(--gold);
+  border: 1px solid rgba(255, 209, 102, 0.4);
+  font-size: 11px;
+  font-weight: 900;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.guide-step-item .step-detail {
+  flex: 1;
+}
+
+.guide-step-item .step-detail strong {
+  font-size: 12.5px;
+  color: var(--text);
+  display: block;
+  margin-bottom: 1px;
+}
+
+.guide-step-item .step-detail p {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin: 0;
+}
+
 /* ---------- 네비게이션 탭 ---------- */
 .nav-tabs {
   display: flex;
@@ -1873,91 +1975,6 @@ input[type="file"]::file-selector-button:hover {
   background: rgba(9, 10, 22, 0.7);
   border-radius: var(--radius);
   border: 1px solid var(--line);
-}
-
-/* 9. 로그인 화면 - 플레이 가이드 (선생님 설명 없이 시작) */
-.login-rules-card {
-  margin-top: 16px;
-  background: rgba(18, 20, 42, 0.85);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(8px);
-}
-
-.rules-badge-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
-}
-
-.rules-badge {
-  background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
-  color: #0b0c1b;
-  font-size: 10.5px;
-  font-weight: 900;
-  padding: 3px 8px;
-  border-radius: 6px;
-  letter-spacing: 0.05em;
-}
-
-.rules-tagline {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--gold);
-}
-
-.rules-grid {
-  display: grid;
-  gap: 10px;
-}
-
-.rule-card-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--line);
-  padding: 10px 14px;
-  border-radius: 10px;
-  transition: all var(--transition);
-}
-
-.rule-card-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(0, 240, 255, 0.3);
-}
-
-.rule-step-badge {
-  background: rgba(255, 209, 102, 0.15);
-  color: var(--gold);
-  border: 1px solid rgba(255, 209, 102, 0.3);
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 999px;
-  white-space: nowrap;
-  margin-top: 2px;
-}
-
-.rule-body {
-  flex: 1;
-}
-
-.rule-title {
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-
-.rule-desc {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.45;
 }
 
 /* ===========================================

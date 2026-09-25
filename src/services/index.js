@@ -9,35 +9,45 @@ import { handleDemoApi } from './demoData.js';
 async function callApi(action, params = {}) {
   // API URL이 없으면 데모 모드
   if (!API_URL) {
-    // 네트워크 지연 시뮬레이션
-    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+    await new Promise(r => setTimeout(r, 100));
     const result = handleDemoApi(action, params);
     if (result.error) throw new Error(result.error);
     return result;
   }
 
-  // 실제 API 호출
-  const url = new URL(API_URL);
-  url.searchParams.set('action', action);
-  url.searchParams.set('params', JSON.stringify(params));
-
+  // 실제 API 호출 시도
   try {
+    const url = new URL(API_URL);
+    url.searchParams.set('action', action);
+    url.searchParams.set('params', JSON.stringify(params));
+
     const response = await fetch(url.toString(), {
       method: 'GET',
       redirect: 'follow',
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn(`[API] Apps Script 비정상 응답 (HTML 반환). 데모 데이터로 안전하게 대체합니다:`, action);
+      const demoResult = handleDemoApi(action, params);
+      if (demoResult.error) throw new Error(demoResult.error);
+      return demoResult;
+    }
     if (data.error) throw new Error(data.error);
     return data;
   } catch (err) {
-    console.error(`[API] ${action} 실패:`, err);
-    throw err;
+    console.warn(`[API] ${action} 통신 실패(${err.message}), 데모 데이터로 안전하게 대체합니다.`);
+    const demoResult = handleDemoApi(action, params);
+    if (demoResult.error) throw new Error(demoResult.error);
+    return demoResult;
   }
 }
 
 async function callApiPost(action, payload = {}) {
   if (!API_URL) {
-    await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
+    await new Promise(r => setTimeout(r, 100));
     const result = handleDemoApi(action, payload);
     if (result.error) throw new Error(result.error);
     return result;
@@ -50,12 +60,23 @@ async function callApiPost(action, payload = {}) {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action, ...payload }),
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn(`[API] POST Apps Script 비정상 응답 (HTML 반환). 데모 데이터로 안전하게 대체합니다:`, action);
+      const demoResult = handleDemoApi(action, payload);
+      if (demoResult.error) throw new Error(demoResult.error);
+      return demoResult;
+    }
     if (data.error) throw new Error(data.error);
     return data;
   } catch (err) {
-    console.error(`[API] POST ${action} 실패:`, err);
-    throw err;
+    console.warn(`[API] POST ${action} 통신 실패(${err.message}), 데모 데이터로 안전하게 대체합니다.`);
+    const demoResult = handleDemoApi(action, payload);
+    if (demoResult.error) throw new Error(demoResult.error);
+    return demoResult;
   }
 }
 

@@ -96,7 +96,7 @@ function buildStudentHTML() {
     <section class="card">
       <div class="card-head">
         <h3>🎟️ MY LOTTO TICKETS</h3>
-        <span class="badge badge-neutral">1인 1페어 규칙</span>
+        <span class="badge badge-neutral">1인당 최대 2개 페어 가능</span>
       </div>
       <div id="myTickets">
         <div class="loading-spinner"><div class="spinner"></div><p>로딩 중...</p></div>
@@ -232,12 +232,15 @@ function updateHUD() {
   if (!hudPair || !hudMission || !hudResult) return;
 
   // 1. PAIR STATUS
-  const activePair = state.myPairs.find(p => p.status === 'ACTIVE');
+  const activePairs = state.myPairs.filter(p => p.status === 'ACTIVE');
   const pendingSent = state.sentRequests.find(r => r.status === 'PENDING');
   const pendingReceived = state.receivedRequests.length;
 
-  if (activePair) {
-    hudPair.textContent = 'MATCHED ✓';
+  if (activePairs.length >= 2) {
+    hudPair.textContent = '2/2 MATCHED ✓';
+    hudPair.className = 'hud-value highlight-cyan';
+  } else if (activePairs.length === 1) {
+    hudPair.textContent = '1/2 MATCHED';
     hudPair.className = 'hud-value highlight-cyan';
   } else if (pendingSent) {
     hudPair.textContent = 'WAITING ⏳';
@@ -246,7 +249,7 @@ function updateHUD() {
     hudPair.textContent = `REQUEST (${pendingReceived})`;
     hudPair.className = 'hud-value highlight-gold';
   } else {
-    hudPair.textContent = 'READY 🎯';
+    hudPair.textContent = 'READY (0/2)';
     hudPair.className = 'hud-value';
   }
 
@@ -493,25 +496,33 @@ function updateNewRequestForm() {
   targetSelect.onchange = syncPreview;
   syncPreview();
 
-  // 1인 1페어 및 신청 가능 여부
+  // 1인당 최대 2개 페어 및 신청 가능 여부
+  const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
+
   if (!globalOpen) {
     badge.textContent = 'APPLICATION CLOSED';
     badge.className = 'badge badge-closed closed';
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.45';
     if (helpText) helpText.innerHTML = '<span style="color:var(--danger); font-weight:700;">🔒 응모가 마감되어 새로운 신청이나 수정을 할 수 없습니다.</span>';
-  } else if (hasActivePair) {
-    badge.textContent = 'PAIR MATCHED (1인 1페어)';
+  } else if (activePairsCount >= 2) {
+    badge.textContent = '페어 정원 완료 (2/2)';
     badge.className = 'badge badge-open open';
-    sendBtn.disabled = false;
-    sendBtn.style.opacity = '0.85';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--warning); font-weight:700;">⚠️ 이미 페어가 완료되었습니다. 변경을 원하시면 위 티켓에서 [💔 페어 끊기]를 먼저 진행해주세요.</span>';
-  } else {
-    badge.textContent = 'APPLICATION OPEN';
+    sendBtn.disabled = true;
+    sendBtn.style.opacity = '0.55';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--warning); font-weight:700;">⚠️ 이미 최대 페어(2개)가 모두 완료되었습니다. 다른 친구와 페어하려면 위 티켓에서 [💔 페어 끊기]를 먼저 진행해주세요.</span>';
+  } else if (activePairsCount === 1) {
+    badge.textContent = '1개 페어 완료 (추가 1개 가능)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.textContent = '신청 변경 기간 동안에는 자유롭게 신청 취소 및 페어 변경이 가능합니다.';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700;">✨ 현재 1개 페어가 성사되었습니다. 홀수 인원 대비 추가로 1명 더 페어 신청이 가능합니다!</span>';
+  } else {
+    badge.textContent = 'APPLICATION OPEN (최대 2페어)';
+    badge.className = 'badge badge-open open';
+    sendBtn.disabled = false;
+    sendBtn.style.opacity = '1';
+    if (helpText) helpText.textContent = '1인당 최대 2개 페어까지 신청/수락 가능합니다. (홀수 인원 시 2개 페어 참여 가능)';
   }
 }
 
@@ -738,10 +749,10 @@ async function handleSendRequest() {
     return;
   }
 
-  // 1인 1페어 원칙: 이미 본인이 활성 페어가 있는 경우 차단
-  const hasActivePair = state.myPairs.some(p => p.status === 'ACTIVE');
-  if (hasActivePair) {
-    await showAlertModal('이미 페어가 완료되었습니다.\n새로운 친구와 페어하려면 먼저 위의 [나의 응모권]에서 기존 페어를 [페어 끊기] 해주세요.', '페어 신청 불가');
+  // 최대 2개 페어 제한
+  const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
+  if (activePairsCount >= 2) {
+    await showAlertModal('이미 최대 페어(2개)를 모두 완료했습니다.\n다른 친구와 페어하려면 먼저 위의 [나의 응모권]에서 기존 페어를 [페어 끊기] 해주세요.', '페어 신청 불가');
     return;
   }
 
