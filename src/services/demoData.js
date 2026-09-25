@@ -4,6 +4,24 @@
  * 실제 서비스에서는 모든 데이터가 Google Sheets에서 옵니다.
  */
 
+export function formatPin(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const str = String(val).trim();
+  if (/^\d{1,4}$/.test(str)) {
+    return str.padStart(4, '0');
+  }
+  return str;
+}
+
+export function formatStudentNumber(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const str = String(val).trim();
+  if (/^\d{1,4}$/.test(str)) {
+    return str.padStart(4, '0');
+  }
+  return str;
+}
+
 export const DEMO_STUDENTS = [
   { studentId: 's2201', studentNumber: '2201', studentName: '홍길동', classId: '2-2' },
   { studentId: 's2202', studentNumber: '2202', studentName: '김민수', classId: '2-2' },
@@ -134,29 +152,51 @@ export function handleDemoApi(action, params) {
       return { ok: true, settings: demoState.settings };
 
     case 'loginStudent': {
-      const { studentNumber, pin } = params;
-      const student = DEMO_STUDENTS.find(s => s.studentNumber === studentNumber);
-      if (!student) return { error: '학생을 찾을 수 없습니다.' };
-      if (demoState.pins[studentNumber] && demoState.pins[studentNumber] !== pin) {
-        return { error: 'PIN이 일치하지 않습니다.' };
+      const studentNumber = formatStudentNumber(params.studentNumber);
+      const pin = formatPin(params.pin);
+      let student = DEMO_STUDENTS.find(s => formatStudentNumber(s.studentNumber) === studentNumber);
+      if (!student) {
+        student = {
+          studentId: 's' + studentNumber,
+          studentNumber,
+          studentName: `학생(${studentNumber})`,
+          classId: studentNumber.length >= 2 ? studentNumber.slice(0, 2) : '1-1'
+        };
+        DEMO_STUDENTS.push(student);
       }
+      if (demoState.pins[studentNumber] && formatPin(demoState.pins[studentNumber]) !== pin) {
+        return { error: '비밀번호가 일치하지 않습니다.' };
+      }
+      demoState.pins[studentNumber] = pin;
       return { ok: true, student };
     }
 
     case 'setupPin': {
-      const { studentNumber, studentName, pin } = params;
-      const student = DEMO_STUDENTS.find(s => s.studentNumber === studentNumber && s.studentName === studentName);
-      if (!student) return { error: '학번과 이름이 일치하지 않습니다.' };
+      const studentNumber = formatStudentNumber(params.studentNumber);
+      const studentName = String(params.studentName || '').trim();
+      const pin = formatPin(params.pin);
+      let student = DEMO_STUDENTS.find(s => formatStudentNumber(s.studentNumber) === studentNumber);
+      if (!student) {
+        student = {
+          studentId: 's' + studentNumber,
+          studentNumber,
+          studentName: studentName || '학생',
+          classId: studentNumber.length >= 2 ? studentNumber.slice(0, 2) : '1-1'
+        };
+        DEMO_STUDENTS.push(student);
+      } else if (studentName) {
+        student.studentName = studentName;
+      }
       demoState.pins[studentNumber] = pin;
       return { ok: true, student };
     }
 
     case 'updateStudentPin': {
       const { studentId, studentNumber, newPin } = params;
-      const targetNumber = studentNumber || DEMO_STUDENTS.find(s => s.studentId === studentId)?.studentNumber;
+      const targetNumber = formatStudentNumber(studentNumber) || DEMO_STUDENTS.find(s => s.studentId === studentId)?.studentNumber;
       if (!targetNumber) return { error: '학생을 찾을 수 없습니다.' };
-      demoState.pins[targetNumber] = newPin;
-      return { ok: true, message: '학생 PIN이 변경되었습니다.' };
+      demoState.pins[targetNumber] = formatPin(newPin);
+      return { ok: true, message: '학생 비밀번호가 변경되었습니다.' };
     }
 
     case 'adminLogin': {

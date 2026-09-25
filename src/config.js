@@ -10,8 +10,8 @@ export const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL || 'https://scri
 /** Google Drive 미션 사진 폴더 ID - Apps Script에서 설정 */
 export const DRIVE_FOLDER_ID = '1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR';
 
-/** Polling 주기 (ms) - 학생 화면 자동 새로고침 */
-export const POLL_INTERVAL = 7000;
+/** Polling 주기 (ms) - 학생 화면 실시간 자동 동기화 (2.5초) */
+export const POLL_INTERVAL = 2500;
 
 /** TARGET 점수 후보 목록 */
 export const TARGET_OPTIONS = [100, 120, 140, 160, 180, 200];

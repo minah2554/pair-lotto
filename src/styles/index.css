@@ -1543,7 +1543,10 @@ input[type="file"]::file-selector-button:hover {
   font-family: 'BcCardFont', sans-serif;
   font-weight: 700;
   font-size: 15px;
-  color: #0f766e;
+  background: linear-gradient(135deg, var(--gold) 0%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: 0.02em;
 }
 

@@ -241,16 +241,35 @@ function setSubjectApplicationStatus_(params) {
 
 // ==================== 학생 관리 ====================
 
+/** 4자리 숫자 문자열(0000, 0123 등) 보존용 포맷터 */
+function formatPin_(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const str = String(val).trim();
+  if (/^\d{1,4}$/.test(str)) {
+    return str.padStart(4, '0');
+  }
+  return str;
+}
+
+function formatStudentNumber_(val) {
+  if (val === null || val === undefined || val === '') return '';
+  const str = String(val).trim();
+  if (/^\d{1,4}$/.test(str)) {
+    return str.padStart(4, '0');
+  }
+  return str;
+}
+
 function getStudentsList_() {
   const sheet = getSheet_(SHEETS.STUDENTS);
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
-  return data.slice(1).filter(r => r[0]).map(r => ({
-    studentId: String(r[0]),
-    studentNumber: String(r[1]),
-    studentName: String(r[2]),
-    classId: String(r[3]),
-    pinHash: String(r[4] || ''),
+  return data.slice(1).filter(r => r[0] || r[1]).map(r => ({
+    studentId: String(r[0] || ('s' + formatStudentNumber_(r[1]))),
+    studentNumber: formatStudentNumber_(r[1]),
+    studentName: String(r[2] || ''),
+    classId: String(r[3] || ''),
+    pinHash: formatPin_(r[4]),
   }));
 }
 
@@ -265,13 +284,32 @@ function getStudents_() {
 }
 
 function loginStudent_(params) {
-  const { studentNumber, pin } = params;
+  const studentNumber = formatStudentNumber_(params.studentNumber);
+  const pin = formatPin_(params.pin);
   const students = getStudentsList_();
-  const student = students.find(s => s.studentNumber === studentNumber);
+  let student = students.find(s => formatStudentNumber_(s.studentNumber) === studentNumber);
   if (!student) throw new Error('학생을 찾을 수 없습니다.');
-  if (student.pinHash && student.pinHash !== pin) {
-    throw new Error('PIN이 일치하지 않습니다.');
+  if (student.pinHash && formatPin_(student.pinHash) !== pin) {
+    throw new Error('비밀번호가 일치하지 않습니다.');
   }
+
+  // 시트에 아직 PIN이 없는 학생인 경우 첫 입력 PIN을 자동 영구 등록
+  if (!student.pinHash && pin) {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(5000);
+    try {
+      const sheet = getSheet_(SHEETS.STUDENTS);
+      const data = sheet.getDataRange().getValues();
+      const idx = data.findIndex((r, i) => i > 0 && formatStudentNumber_(r[1]) === studentNumber);
+      if (idx > 0) {
+        // 작은따옴표를 붙여 구글 시트에서 0000이 0으로 축소되는 현상 원천 방지
+        sheet.getRange(idx + 1, 5).setValue("'" + pin);
+      }
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
   return {
     ok: true,
     student: {
@@ -284,21 +322,26 @@ function loginStudent_(params) {
 }
 
 function setupPin_(params) {
-  const { studentNumber, studentName, pin } = params;
+  const studentNumber = formatStudentNumber_(params.studentNumber);
+  const studentName = String(params.studentName || '').trim();
+  const pin = formatPin_(params.pin);
+
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     const sheet = getSheet_(SHEETS.STUDENTS);
     const data = sheet.getDataRange().getValues();
-    const idx = data.findIndex((r, i) => i > 0 && String(r[1]) === studentNumber && String(r[2]) === studentName);
+    const idx = data.findIndex((r, i) => i > 0 && formatStudentNumber_(r[1]) === studentNumber && String(r[2]).trim() === studentName);
     if (idx < 0) throw new Error('학번과 이름이 일치하지 않습니다.');
-    sheet.getRange(idx + 1, 5).setValue(pin);
+
+    // 0000 보존을 위해 작은따옴표 접두사 적용
+    sheet.getRange(idx + 1, 5).setValue("'" + pin);
     const row = data[idx];
     return {
       ok: true,
       student: {
         studentId: String(row[0]),
-        studentNumber: String(row[1]),
+        studentNumber: formatStudentNumber_(row[1]),
         studentName: String(row[2]),
         classId: String(row[3]),
       }
@@ -311,15 +354,19 @@ function setupPin_(params) {
 /** 관리자: 학생 PIN 변경/재설정 */
 function updateStudentPin_(params) {
   const { studentId, studentNumber, newPin } = params;
+  const cleanPin = formatPin_(newPin);
+  const cleanNum = formatStudentNumber_(studentNumber);
+
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
     const sheet = getSheet_(SHEETS.STUDENTS);
     const data = sheet.getDataRange().getValues();
-    const idx = data.findIndex((r, i) => i > 0 && (String(r[0]) === studentId || String(r[1]) === studentNumber));
+    const idx = data.findIndex((r, i) => i > 0 && (String(r[0]) === studentId || formatStudentNumber_(r[1]) === cleanNum));
     if (idx < 0) throw new Error('학생을 찾을 수 없습니다.');
-    sheet.getRange(idx + 1, 5).setValue(newPin);
-    return { ok: true, message: '학생 PIN이 변경되었습니다.' };
+
+    sheet.getRange(idx + 1, 5).setValue("'" + cleanPin);
+    return { ok: true, message: '학생 비밀번호가 성공적으로 변경되었습니다.' };
   } finally {
     lock.releaseLock();
   }

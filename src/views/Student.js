@@ -895,10 +895,19 @@ async function handleMissionUpload(e, dataset) {
   }
 }
 
-/** Polling 시작 */
+/** Polling 시작 - 실시간 자동 동기화 (2.5초 주기 + 화면 복귀 즉시 동기화) */
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(() => {
     loadStudentData();
   }, POLL_INTERVAL);
+
+  // 학생이 화면을 켜거나 탭으로 돌아왔을 때 즉시 실시간 동기화
+  const onFocusSync = () => {
+    if (document.visibilityState === 'visible') {
+      loadStudentData();
+    }
+  };
+  window.addEventListener('visibilitychange', onFocusSync);
+  window.addEventListener('focus', onFocusSync);
 }

@@ -52,15 +52,15 @@ export function renderLogin(container) {
       </div>
     </div>
 
-    <!-- 3. 접속 폼 (로그인 / PIN 설정) -->
+    <!-- 3. 접속 폼 (로그인 / 초기 비밀번호 설정) -->
     <div id="loginStep" class="login-form">
       <div class="form-group">
         <label class="form-label">학번 (4자리)</label>
         <input type="text" id="loginStudentNumber" class="form-input" placeholder="예: 2201" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <div class="form-group">
-        <label class="form-label">PIN (4자리)</label>
-        <input type="password" id="loginPin" class="form-input" placeholder="PIN 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label class="form-label">비밀번호 (4자리)</label>
+        <input type="password" id="loginPin" class="form-input" placeholder="비밀번호 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <button id="loginBtn" class="btn btn-gold btn-lg btn-wide">로그인</button>
     </div>
@@ -68,10 +68,16 @@ export function renderLogin(container) {
     <div class="login-divider">또는</div>
 
     <div class="login-form">
-      <button id="setupBtn" class="btn btn-ghost btn-wide">처음이에요 (PIN 설정)</button>
+      <button id="setupBtn" class="btn btn-ghost btn-wide">처음이에요 (초기 비밀번호 설정)</button>
     </div>
 
     <div id="setupStep" class="login-form hidden">
+      <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
+        <div style="color:var(--gold); font-weight:800; font-size:13px; margin-bottom:2px;">⚠️ 초기 비밀번호 필수 안내</div>
+        <div style="color:var(--text); font-size:11.5px; line-height:1.45;">
+          설정한 초기 비밀번호는 앞으로 로그인할 때 계속 사용되므로 <b>꼭 기억하고 있어야 합니다!</b>
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label">학번 (4자리)</label>
         <input type="text" id="setupStudentNumber" class="form-input" placeholder="예: 2201" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
@@ -81,14 +87,14 @@ export function renderLogin(container) {
         <input type="text" id="setupStudentName" class="form-input" placeholder="이름 입력" />
       </div>
       <div class="form-group">
-        <label class="form-label">새 PIN (4자리 숫자)</label>
-        <input type="password" id="setupPin" class="form-input" placeholder="PIN 설정" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label class="form-label">초기 비밀번호 (4자리 숫자)</label>
+        <input type="password" id="setupPin" class="form-input" placeholder="비밀번호 4자리 설정" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <div class="form-group">
-        <label class="form-label">PIN 확인</label>
-        <input type="password" id="setupPinConfirm" class="form-input" placeholder="PIN 다시 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label class="form-label">초기 비밀번호 확인</label>
+        <input type="password" id="setupPinConfirm" class="form-input" placeholder="비밀번호 다시 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
-      <button id="setupSubmitBtn" class="btn btn-primary btn-lg btn-wide">PIN 설정하고 시작</button>
+      <button id="setupSubmitBtn" class="btn btn-primary btn-lg btn-wide">초기 비밀번호 설정하고 시작</button>
       <button id="setupBackBtn" class="btn btn-ghost btn-wide">돌아가기</button>
     </div>
   `;
@@ -147,7 +153,7 @@ async function handleLogin() {
     return;
   }
   if (!pin || pin.length !== 4) {
-    showToast('PIN 4자리를 입력해주세요.', 'error');
+    showToast('비밀번호 4자리를 입력해주세요.', 'error');
     return;
   }
 
@@ -186,11 +192,11 @@ async function handleSetup() {
     return;
   }
   if (!pin || pin.length !== 4) {
-    showToast('PIN 4자리를 입력해주세요.', 'error');
+    showToast('초기 비밀번호 4자리를 입력해주세요.', 'error');
     return;
   }
   if (pin !== pinConfirm) {
-    showToast('PIN이 일치하지 않습니다.', 'error');
+    showToast('비밀번호가 일치하지 않습니다.', 'error');
     return;
   }
 
@@ -203,11 +209,11 @@ async function handleSetup() {
     if (result.ok && result.student) {
       saveSession(result.student);
       state.currentView = 'student';
-      showToast('PIN이 설정되었습니다!', 'success');
+      showToast('초기 비밀번호가 설정되었습니다! 꼭 기억해주세요.', 'success');
       notify();
     }
   } catch (err) {
-    showToast(err.message || 'PIN 설정에 실패했습니다.', 'error');
+    showToast(err.message || '초기 비밀번호 설정에 실패했습니다.', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = 'PIN 설정하고 시작';
