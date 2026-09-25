@@ -16,11 +16,8 @@ export function renderAdminLogin(container) {
     <div class="login-logo">
       <img src="/logo-lotto.svg" alt="PAIR LOTTO 로고" style="width: 48px; height: 48px; object-fit: contain;" />
     </div>
-    <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-      <img src="/logo-lotto.svg" alt="로고" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle;" />
-      <h1 class="login-title" id="admin-board-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 28px; margin-bottom: 0; display: inline-block;">관리자 모드</h1>
-    </div>
-    <p class="login-subtitle" style="margin-top: 6px;">PAIR LOTTO 운영 관리</p>
+    <h1 class="login-title" id="admin-board-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 28px; margin-bottom: 2px;">관리자 모드</h1>
+    <p class="login-subtitle">PAIR LOTTO 운영 관리</p>
 
     <div class="login-form">
       <div class="form-group">

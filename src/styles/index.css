@@ -937,16 +937,207 @@ tr:hover td {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 48px;
   margin-bottom: 8px;
-  filter: drop-shadow(0 0 12px var(--gold-glow));
 }
 
-.login-logo img {
-  width: 52px;
-  height: 52px;
+/* ==================== 잭팟 슬롯머신 3초 애니메이션 ==================== */
+.jackpot-anim-container {
+  position: relative;
+  width: 136px;
+  height: 136px;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 황금빛 회전 방사형 빔 (스핀 중에만 격렬하게 회전) */
+.jackpot-rays {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 209, 102, 0) 0deg,
+    rgba(255, 209, 102, 0.45) 30deg,
+    rgba(255, 209, 102, 0) 60deg,
+    rgba(255, 209, 102, 0.5) 120deg,
+    rgba(255, 209, 102, 0) 150deg,
+    rgba(255, 209, 102, 0.45) 210deg,
+    rgba(255, 209, 102, 0) 240deg,
+    rgba(255, 209, 102, 0.5) 300deg,
+    rgba(255, 209, 102, 0) 330deg
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.jackpot-anim-container.spinning .jackpot-rays {
+  opacity: 1;
+  animation: rayRotate 1s linear infinite;
+}
+
+/* 슬롯머신 이미지 본체 */
+.jackpot-slot-img {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 12px var(--gold-glow));
+  border-radius: 50%;
+  filter: drop-shadow(0 0 16px rgba(255, 209, 102, 0.45));
+  position: relative;
+  z-index: 2;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+}
+
+/* 스핀 중 진동 덜컹거림 */
+.jackpot-anim-container.spinning .jackpot-slot-img {
+  animation: slotRumble 0.1s linear infinite alternate, slotLeverPull 0.5s ease-out;
+}
+
+/* 릴 회전 모션 블러 오버레이 (이미지 중앙 릴 위치) */
+.jackpot-reel-blur {
+  position: absolute;
+  top: 45%;
+  left: 21%;
+  width: 58%;
+  height: 23%;
+  border-radius: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(255, 255, 255, 0.8) 25%,
+    rgba(239, 68, 68, 0.9) 50%,
+    rgba(255, 255, 255, 0.8) 75%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  background-size: 100% 40px;
+  opacity: 0;
+  z-index: 3;
+  pointer-events: none;
+  filter: blur(1px);
+  mix-blend-mode: overlay;
+}
+.jackpot-anim-container.spinning .jackpot-reel-blur {
+  opacity: 0.85;
+  animation: reelRolling 0.07s linear infinite;
+}
+
+/* 잭팟 터졌을 때 번쩍이는 섬광 펄스 */
+.jackpot-flash-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 4px solid var(--gold);
+  box-shadow: 0 0 35px var(--gold), inset 0 0 20px var(--gold);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.jackpot-anim-container.hit-jackpot .jackpot-flash-ring {
+  animation: jackpotFlashPulse 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.jackpot-anim-container.hit-jackpot .jackpot-slot-img {
+  animation: jackpotPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 0 30px rgba(255, 209, 102, 0.95)) drop-shadow(0 0 14px #ff0055);
+}
+
+/* 잭팟 뱃지 팝업 */
+.jackpot-badge-pop {
+  position: absolute;
+  bottom: -6px;
+  background: linear-gradient(135deg, #ff0055 0%, #ff4757 50%, #f97316 100%);
+  color: #fff;
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  padding: 4px 14px;
+  border-radius: 999px;
+  box-shadow: 0 0 16px rgba(255, 0, 85, 0.85), 0 2px 6px rgba(0,0,0,0.6);
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px) scale(0.8);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.jackpot-anim-container.hit-jackpot .jackpot-badge-pop {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  animation: badgeGlow 1.5s infinite alternate;
+}
+
+/* 스파클 파티클들 */
+.jackpot-sparkle-item {
+  position: absolute;
+  font-size: 18px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 6;
+}
+.jackpot-anim-container.hit-jackpot .sp-1 { animation: sparkleFly1 1.2s ease-out forwards; }
+.jackpot-anim-container.hit-jackpot .sp-2 { animation: sparkleFly2 1.2s ease-out forwards; }
+.jackpot-anim-container.hit-jackpot .sp-3 { animation: sparkleFly3 1.2s ease-out forwards; }
+.jackpot-anim-container.hit-jackpot .sp-4 { animation: sparkleFly4 1.2s ease-out forwards; }
+
+@keyframes rayRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slotRumble {
+  0% { transform: translate(-2px, -1px) scale(1.02); }
+  100% { transform: translate(2px, 1px) scale(1.02); }
+}
+
+@keyframes slotLeverPull {
+  0% { transform: scale(1); }
+  25% { transform: scale(0.96) rotate(-3deg); }
+  55% { transform: scale(1.04) rotate(2deg); }
+  100% { transform: scale(1.02); }
+}
+
+@keyframes reelRolling {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 40px; }
+}
+
+@keyframes jackpotFlashPulse {
+  0% { opacity: 0; transform: scale(0.85); }
+  35% { opacity: 1; transform: scale(1.22); }
+  100% { opacity: 0; transform: scale(1.42); }
+}
+
+@keyframes jackpotPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  65% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+@keyframes badgeGlow {
+  0% { box-shadow: 0 0 14px rgba(255, 0, 85, 0.7); }
+  100% { box-shadow: 0 0 26px rgba(255, 209, 102, 0.95), 0 0 12px #ff4757; }
+}
+
+@keyframes sparkleFly1 {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.5); }
+  100% { opacity: 0; transform: translate(-48px, -38px) scale(1.3); }
+}
+@keyframes sparkleFly2 {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.5); }
+  100% { opacity: 0; transform: translate(48px, -42px) scale(1.4); }
+}
+@keyframes sparkleFly3 {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.5); }
+  100% { opacity: 0; transform: translate(-44px, 32px) scale(1.2); }
+}
+@keyframes sparkleFly4 {
+  0% { opacity: 1; transform: translate(0, 0) scale(0.5); }
+  100% { opacity: 0; transform: translate(45px, 34px) scale(1.3); }
 }
 
 .login-title {
