@@ -937,20 +937,14 @@ tr:hover td {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
-/* ==================== 잭팟 슬롯머신 3초 애니메이션 ==================== */
-.jackpot-anim-container {
-  position: relative;
-  width: 136px;
-  height: 136px;
-  margin: 0 auto 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  user-select: none;
+.login-logo img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px var(--gold-glow));
 }
 
 /* 황금빛 회전 방사형 빔 (스핀 중에만 격렬하게 회전) */

@@ -14,22 +14,11 @@ export function renderLogin(container) {
   const box = el('div', { className: 'login-box login-box-unified' });
 
   box.innerHTML = `
-    <!-- 1. 브랜드 헤더 (클릭 시 관리자 모드 시크릿 진입) -->
+    <!-- 1. 브랜드 헤더 (타이틀 클릭 시 관리자 모드 시크릿 진입) -->
     <div class="login-brand-header">
-      <!-- 3초 잭팟 애니메이션 슬롯머신 -->
-      <div class="jackpot-anim-container spinning" id="jackpotAnimBox" title="클릭하면 잭팟 스핀이 다시 돌아갑니다!">
-        <div class="jackpot-rays"></div>
-        <div class="jackpot-flash-ring"></div>
-        <img src="/jackpot-slot.png" alt="PAIR LOTTO 잭팟 슬롯머신" class="jackpot-slot-img" />
-        <div class="jackpot-reel-blur"></div>
-        <div class="jackpot-badge-pop">💥 777 JACKPOT!</div>
-        <div class="jackpot-sparkle-item sp-1">✨</div>
-        <div class="jackpot-sparkle-item sp-2">🎉</div>
-        <div class="jackpot-sparkle-item sp-3">⭐</div>
-        <div class="jackpot-sparkle-item sp-4">🪙</div>
+      <div class="login-logo">
+        <img src="/logo-lotto.svg" alt="PAIR LOTTO 로고" style="width: 64px; height: 64px; object-fit: contain;" />
       </div>
-
-      <!-- 타이틀 (아이콘 중복 제거, 타이틀 클릭 시 관리자 모드 진입) -->
       <h1 class="login-title" id="board-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 32px; margin-bottom: 2px; cursor: pointer; user-select: none;" title="PAIR LOTTO">PAIR LOTTO</h1>
       <p class="login-subtitle">시험기간 점수 예측 활동</p>
     </div>
@@ -120,40 +109,6 @@ export function renderLogin(container) {
   wrapper.appendChild(footerWrapper.firstElementChild);
 
   container.appendChild(wrapper);
-
-  // --- 3초 잭팟 애니메이션 제어 함수 ---
-  const animBox = box.querySelector('#jackpotAnimBox');
-  function playJackpotSequence() {
-    if (!animBox) return;
-    animBox.classList.remove('hit-jackpot');
-    animBox.classList.add('spinning');
-
-    // 2.4초 회전 및 진동 후 릴 고정
-    setTimeout(() => {
-      animBox.classList.remove('spinning');
-    }, 2400);
-
-    // 2.6초 시점에 777 잭팟 쾅 터짐!
-    setTimeout(() => {
-      animBox.classList.add('hit-jackpot');
-    }, 2550);
-  }
-
-  // 첫 접속 시 자동 3초 잭팟 실행
-  playJackpotSequence();
-
-  // 슬롯머신 클릭 시 다시 3초 잭팟 스핀 연출
-  let clickCounter = 0;
-  if (animBox) {
-    animBox.addEventListener('click', () => {
-      playJackpotSequence();
-      clickCounter++;
-      if (clickCounter >= 5) {
-        state.currentView = 'admin-login';
-        notify();
-      }
-    });
-  }
 
   // 관리자 시크릿 진입 (PAIR LOTTO 메인 타이틀 클릭)
   const titleTrigger = box.querySelector('#board-title');
