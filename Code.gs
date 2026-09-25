@@ -27,11 +27,24 @@ const SHEETS = {
   RESULTS: 'RESULTS',
 };
 
+// ==================== 스프레드시트 및 구글 드라이브 설정 ====================
+// URL 전체를 넣거나 ID만 넣어도 자동으로 순수 ID를 추출하여 인식합니다.
+const SPREADSHEET_ID = 'https://docs.google.com/spreadsheets/d/1q8G2Btlmj5c8SqxoxnSgSNL3gx5W8ESsuIUXv1GkbVQ/edit?usp=sharing';
+const DRIVE_FOLDER_ID = 'https://drive.google.com/drive/folders/1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR?usp=sharing';
+
+/** URL 또는 ID 문자열에서 구글 고유 ID를 자동 추출 */
+function extractId_(str) {
+  if (!str) return '';
+  const match = String(str).match(/[-\w]{25,}/);
+  return match ? match[0] : String(str);
+}
+
 // ==================== 스프레드시트 접근 ====================
 function getSs_() {
-  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '1q8G2Btlmj5c8SqxoxnSgSNL3gx5W8ESsuIUXv1GkbVQ';
-  if (!id) throw new Error('SPREADSHEET_ID가 설정되지 않았습니다.');
-  return SpreadsheetApp.openById(id);
+  const propId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  const target = propId || SPREADSHEET_ID;
+  if (!target) throw new Error('SPREADSHEET_ID가 설정되지 않았습니다.');
+  return SpreadsheetApp.openById(extractId_(target));
 }
 
 function getSheet_(name) {
@@ -678,7 +691,9 @@ function submitMission_(params) {
     let fileId = '';
     let fileUrl = '';
     if (params.base64) {
-      const folderId = PropertiesService.getScriptProperties().getProperty('MISSION_FOLDER_ID') || '1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR';
+      const propFolder = PropertiesService.getScriptProperties().getProperty('MISSION_FOLDER_ID');
+      const targetFolder = propFolder || DRIVE_FOLDER_ID;
+      const folderId = extractId_(targetFolder);
       if (folderId) {
         const bytes = Utilities.base64Decode(params.base64);
         const blob = Utilities.newBlob(bytes, params.mimeType || 'image/jpeg', params.fileName || 'mission.jpg');

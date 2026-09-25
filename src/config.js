@@ -5,7 +5,7 @@
  */
 
 /** Apps Script Web App URL - 배포 후 여기에 입력 */
-export const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL || '';
+export const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL || 'https://script.google.com/macros/s/AKfycbzKbMuIyu45HW_wt0YdWaqmhvKEMaZvPbLQ07fdjyJuB80tEKr8AY0WIuou3Zg3WCcR2w/exec';
 
 /** Google Drive 미션 사진 폴더 ID - Apps Script에서 설정 */
 export const DRIVE_FOLDER_ID = '1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR';
