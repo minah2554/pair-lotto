@@ -66,15 +66,15 @@ function buildStudentHTML() {
     <!-- 아케이드 HUD 요약 바 (게임 상태 헤드업 디스플레이) -->
     <div class="arcade-hud">
       <div class="hud-item hud-pair">
-        <div class="hud-label">PAIR STATUS</div>
+        <div class="hud-label">PAIR STATUS · 페어 상태</div>
         <div class="hud-value highlight-cyan" id="hudPairStatus">확인 중</div>
       </div>
       <div class="hud-item hud-mission">
-        <div class="hud-label">MISSION STATUS</div>
+        <div class="hud-label">MISSION STATUS · 미션 현황</div>
         <div class="hud-value highlight-gold" id="hudMissionStatus">- / 3 COMPLETE</div>
       </div>
       <div class="hud-item hud-result">
-        <div class="hud-label">RESULT STATUS</div>
+        <div class="hud-label">RESULT STATUS · 결과 발표</div>
         <div class="hud-value highlight-green" id="hudResultStatus">대기 중</div>
       </div>
     </div>
@@ -82,7 +82,7 @@ function buildStudentHTML() {
     <!-- 받은 PAIR 신청 (INCOMING EVENT) -->
     <section class="card" id="receivedRequestsSection">
       <div class="card-head">
-        <h3>⚡ INCOMING PAIR REQUESTS</h3>
+        <h3>⚡ INCOMING PAIR REQUESTS · 도착한 페어 신청</h3>
         <span class="badge badge-warning" id="requestCount">0</span>
       </div>
       <div id="receivedRequestsList">
@@ -95,7 +95,7 @@ function buildStudentHTML() {
     <!-- 디지털 LOTTO 티켓 (나의 응모권) -->
     <section class="card">
       <div class="card-head">
-        <h3>🎟️ MY LOTTO TICKETS</h3>
+        <h3>🎟️ MY LOTTO TICKETS · 나의 응모권</h3>
         <span class="badge badge-neutral">1인당 최대 2개 페어 가능</span>
       </div>
       <div id="myTickets">
@@ -106,21 +106,21 @@ function buildStudentHTML() {
     <!-- 새 PAIR 매칭 챌린지 (SELECT YOUR PAIR) -->
     <section class="card" id="newRequestSection">
       <div class="card-head">
-        <h3>🎯 SELECT YOUR PAIR</h3>
+        <h3>🎯 SELECT YOUR PAIR · 짝꿍 신청하기</h3>
         <span class="badge" id="applyStatusBadge">확인 중</span>
       </div>
       <div class="form-grid">
         <div class="form-grid form-grid-cols">
           <div class="form-group">
-            <label class="form-label">CHALLENGE 과목</label>
+            <label class="form-label">CHALLENGE 과목 · 과목 선택</label>
             <select id="subjectSelect" class="form-select"></select>
           </div>
           <div class="form-group">
-            <label class="form-label">PAIR PARTNER 친구</label>
+            <label class="form-label">PAIR PARTNER · 친구 선택</label>
             <select id="friendSelect" class="form-select"></select>
           </div>
           <div class="form-group">
-            <label class="form-label">CHALLENGE TARGET 점수</label>
+            <label class="form-label">CHALLENGE TARGET · 목표 점수</label>
             <select id="targetSelect" class="form-select">
               ${TARGET_OPTIONS.map(t => `<option value="${t}"${t === 180 ? ' selected' : ''}>${t}점</option>`).join('')}
             </select>
@@ -129,7 +129,7 @@ function buildStudentHTML() {
 
         <!-- 실시간 매칭 프리뷰 카드 -->
         <div class="match-preview-card">
-          <div class="match-preview-tag">MATCH PREVIEW</div>
+          <div class="match-preview-tag">MATCH PREVIEW · 매칭 미리보기</div>
           <div class="match-vs-box">
             <div class="player-box me">
               <div class="role">PLAYER 1</div>
@@ -148,7 +148,7 @@ function buildStudentHTML() {
         </div>
 
         <div>
-          <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">🚀 SEND PAIR REQUEST</button>
+          <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">🚀 SEND PAIR REQUEST · 신청 보내기</button>
         </div>
       </div>
       <p class="help" id="newRequestHelp">신청 변경 기간 동안에는 자유롭게 신청 취소 및 페어 변경이 가능합니다.</p>
@@ -157,7 +157,7 @@ function buildStudentHTML() {
     <!-- PAIR MISSION (QUEST BOARD) -->
     <section class="card" id="missionSection">
       <div class="card-head">
-        <h3>⭐ QUEST BOARD · PAIR MISSION</h3>
+        <h3>⭐ QUEST BOARD · 페어 미션 퀘스트</h3>
         <span class="badge badge-neutral" id="missionBadge">-</span>
       </div>
       <div id="missionContent">
@@ -364,7 +364,7 @@ function updateMyTickets() {
 
             <!-- TARGET 슬롯머신 점수판 (가장 크게 강조) -->
             <div class="arcade-target-banner">
-              <div class="arcade-target-label">CHALLENGE TARGET</div>
+              <div class="arcade-target-label">CHALLENGE TARGET · 목표 점수</div>
               <div class="arcade-target-number">${pair.target}</div>
               <div class="arcade-buff-badge">🔥 BONUS ACTIVE (±${totalRange}점)</div>
             </div>
@@ -403,7 +403,7 @@ function updateMyTickets() {
               ${state.student.studentName} <span style="color:var(--warning);">×</span> ${toStudent?.studentName || sentReq.toId}
             </div>
             <div class="arcade-target-banner" style="padding:12px; margin:12px 0;">
-              <div class="arcade-target-label">REQUESTED TARGET</div>
+              <div class="arcade-target-label">REQUESTED TARGET · 요청된 목표 점수</div>
               <div class="arcade-target-number" style="font-size:36px; opacity:0.85;">${sentReq.target}</div>
             </div>
             <div class="range">기본 당첨범위 ±${BASE_RANGE}점</div>
@@ -424,7 +424,7 @@ function updateMyTickets() {
           </div>
           <div class="ticket-main" style="padding:16px 0;">
             <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">아직 매칭되지 않았습니다.</div>
-            <div style="font-size:12px; color:var(--muted);">아래 [SELECT YOUR PAIR]에서 친구를 찾아보세요!</div>
+            <div style="font-size:12px; color:var(--muted);">아래 [🎯 SELECT YOUR PAIR · 짝꿍 신청하기]에서 친구를 찾아보세요!</div>
           </div>
         </div>
       `;
@@ -787,14 +787,14 @@ async function handleSendRequest() {
 
 /** PAIR 신청 수락 */
 async function handleAccept(requestId) {
-  // 1인 1페어 원칙: 본인이 이미 활성 페어가 있는 경우 차단
-  const hasActivePair = state.myPairs.some(p => p.status === 'ACTIVE');
-  if (hasActivePair) {
-    await showAlertModal('이미 페어가 완료되었습니다.\n1인당 1번만 페어가 가능하므로, 기존 페어를 끊기 전에는 다른 신청을 수락할 수 없습니다.', '수락 불가');
+  // 1인당 최대 2개 페어 허용 (학급 인원 홀수 대응)
+  const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
+  if (activePairsCount >= 2) {
+    await showAlertModal('이미 최대 페어(2개)를 모두 완료했습니다.\n다른 신청을 수락하려면 기존 페어를 먼저 [페어 끊기] 해주세요.', '수락 불가');
     return;
   }
 
-  const ok = await showConfirm('이 PAIR 신청을 수락하시겠습니까?\n수락 시 1인 1페어 원칙에 따라 정식 페어가 성사됩니다.');
+  const ok = await showConfirm('이 PAIR 신청을 수락하시겠습니까?\n수락 시 정식 페어가 성사됩니다.');
   if (!ok) return;
 
   const req = state.receivedRequests.find(r => r.requestId === requestId);

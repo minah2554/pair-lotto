@@ -63,10 +63,16 @@ async function handleAdminLogin() {
 
   try {
     const passwordHash = await sha256(password);
-    const EXPECTED_HASH = 'e90f23b2bfa9a6dd6313364fa4e6777c98c0b533cb1b0fa3f6ce4048cfc526be';
+    const passwordHashLower = await sha256(password.toLowerCase());
 
-    // 즉시 SHA-256 해시 검증 (비밀번호: minah)
-    if (passwordHash === EXPECTED_HASH) {
+    // minah의 실제 SHA-256 해시 및 검증
+    const VALID_HASHES = [
+      'ad5f52f58ed6ec6e7a641f2416f347674ac5933470079f2a18bc6269b1e80796', // sha256('minah')
+      'e90f23b2bfa9a6dd6313364fa4e6777c98c0b533cb1b0fa3f6ce4048cfc526be'
+    ];
+
+    // 즉시 SHA-256 해시 검증
+    if (VALID_HASHES.includes(passwordHash) || VALID_HASHES.includes(passwordHashLower)) {
       saveAdminSession();
       state.currentView = 'admin';
       showToast('관리자 모드로 진입했습니다.', 'success');
@@ -75,7 +81,7 @@ async function handleAdminLogin() {
     }
 
     // 서버 추가 검증
-    const result = await api.adminLogin(passwordHash);
+    const result = await api.adminLogin(passwordHashLower);
     if (result && result.ok) {
       saveAdminSession();
       state.currentView = 'admin';
