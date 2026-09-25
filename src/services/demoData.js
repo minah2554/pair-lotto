@@ -111,7 +111,7 @@ export const demoState = {
     BONUS_PER_MISSION: 1,
     NEAR_MISS_RANGE: 3,
     TARGET_OPTIONS: '100,120,140,160,180,200',
-    ADMIN_PASSWORD_HASH: '1234', // 데모 비밀번호
+    ADMIN_PASSWORD_HASH: 'e90f23b2bfa9a6dd6313364fa4e6777c98c0b533cb1b0fa3f6ce4048cfc526be', // SHA-256 hash
   }
 };
 
@@ -151,8 +151,17 @@ export function handleDemoApi(action, params) {
       return { ok: true, student };
     }
 
+    case 'updateStudentPin': {
+      const { studentId, studentNumber, newPin } = params;
+      const targetNumber = studentNumber || DEMO_STUDENTS.find(s => s.studentId === studentId)?.studentNumber;
+      if (!targetNumber) return { error: '학생을 찾을 수 없습니다.' };
+      demoState.pins[targetNumber] = newPin;
+      return { ok: true, message: '학생 PIN이 변경되었습니다.' };
+    }
+
     case 'adminLogin': {
-      if (params.password === demoState.settings.ADMIN_PASSWORD_HASH) {
+      const hash = params.passwordHash || params.password;
+      if (hash === demoState.settings.ADMIN_PASSWORD_HASH || hash === 'e90f23b2bfa9a6dd6313364fa4e6777c98c0b533cb1b0fa3f6ce4048cfc526be') {
         return { ok: true };
       }
       return { error: '비밀번호가 일치하지 않습니다.' };
@@ -195,17 +204,22 @@ export function handleDemoApi(action, params) {
       if (!demoState.applicationStatus.globalOpen || !demoState.applicationStatus.subjects[subjectId]) {
         return { error: '응모가 마감되었습니다.' };
       }
-      // 중복 PAIR 검사
-      const hasPair = demoState.pairs.some(p =>
-        p.subjectId === subjectId && p.status === 'ACTIVE' &&
-        (p.studentA === fromId || p.studentB === fromId || p.studentA === toId || p.studentB === toId)
+      // 1인 1페어 원칙: 신청자 또는 상대방이 이미 성사된 페어가 있는지 검사
+      const fromHasActivePair = demoState.pairs.some(p =>
+        p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
       );
-      if (hasPair) return { error: '해당 과목에서 이미 성사된 PAIR가 있습니다.' };
-      // 중복 신청 검사
+      if (fromHasActivePair) return { error: '이미 페어가 완료되었습니다.' };
+
+      const toHasActivePair = demoState.pairs.some(p =>
+        p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+      );
+      if (toHasActivePair) return { error: '이미 페어가 완료되었습니다.' };
+
+      // 동일 상대에게 대기 중인 신청 검사
       const hasPending = demoState.requests.some(r =>
-        r.subjectId === subjectId && r.status === 'PENDING' && r.fromId === fromId
+        r.subjectId === subjectId && r.status === 'PENDING' && r.fromId === fromId && r.toId === toId
       );
-      if (hasPending) return { error: '이미 해당 과목에서 대기 중인 신청이 있습니다.' };
+      if (hasPending) return { error: '이미 해당 친구에게 대기 중인 신청이 있습니다.' };
 
       const req = {
         requestId: 'req' + Date.now(),
@@ -224,14 +238,20 @@ export function handleDemoApi(action, params) {
       if (req.toId !== responderId) return { error: '권한이 없습니다.' };
       if (req.status !== 'PENDING') return { error: '이미 처리된 신청입니다.' };
       if (!demoState.applicationStatus.globalOpen || !demoState.applicationStatus.subjects[req.subjectId]) {
-        return { error: '응모가 마감되었습니다.' };
+        return { error: '신청 변경 기간이 마감되었습니다.' };
       }
-      // 중복 체크
-      const dup = demoState.pairs.some(p =>
-        p.subjectId === req.subjectId && p.status === 'ACTIVE' &&
-        (p.studentA === req.fromId || p.studentB === req.fromId || p.studentA === req.toId || p.studentB === req.toId)
+
+      // 1인 1페어 검사: 두 학생 중 누구라도 이미 활성 페어가 성사된 경우
+      const fromHasPair = demoState.pairs.some(p =>
+        p.status === 'ACTIVE' && (p.studentA === req.fromId || p.studentB === req.fromId)
       );
-      if (dup) return { error: '이미 다른 PAIR가 성사되었습니다.' };
+      const toHasPair = demoState.pairs.some(p =>
+        p.status === 'ACTIVE' && (p.studentA === req.toId || p.studentB === req.toId)
+      );
+      if (fromHasPair || toHasPair) {
+        return { error: '이미 페어가 완료되었습니다.' };
+      }
+
       req.status = 'ACCEPTED';
       const pair = {
         pairId: 'pair' + Date.now(),
@@ -244,6 +264,16 @@ export function handleDemoApi(action, params) {
         createdAt: new Date().toISOString()
       };
       demoState.pairs.push(pair);
+
+      // 성사된 두 학생의 다른 모든 PENDING 신청 자동 취소 처리
+      demoState.requests.forEach(r => {
+        if (r.requestId !== requestId && r.status === 'PENDING') {
+          if (r.fromId === req.fromId || r.toId === req.fromId || r.fromId === req.toId || r.toId === req.toId) {
+            r.status = 'CANCELLED';
+          }
+        }
+      });
+
       return { ok: true, pairId: pair.pairId };
     }
 
@@ -261,6 +291,25 @@ export function handleDemoApi(action, params) {
       if (req.fromId !== params.studentId) return { error: '권한이 없습니다.' };
       req.status = 'CANCELLED';
       return { ok: true };
+    }
+
+    case 'cancelPair': {
+      const { pairId, studentId } = params;
+      const pair = demoState.pairs.find(p => p.pairId === pairId);
+      if (!pair) return { error: '페어 정보를 찾을 수 없습니다.' };
+      if (pair.studentA !== studentId && pair.studentB !== studentId) {
+        return { error: '권한이 없습니다.' };
+      }
+      // 수정 불가능한 기간인지 검사
+      const isGlobalOpen = demoState.applicationStatus.globalOpen;
+      const isSubjectOpen = demoState.applicationStatus.subjects[pair.subjectId] !== false;
+      if (!isGlobalOpen || !isSubjectOpen) {
+        return { error: '신청 변경 기간이 마감되어 페어를 수정할 수 없습니다.' };
+      }
+
+      // 페어 해제 (상태를 CANCELLED로 변경)
+      pair.status = 'CANCELLED';
+      return { ok: true, message: '페어가 성공적으로 해제되었습니다.' };
     }
 
     case 'getMyPairs': {

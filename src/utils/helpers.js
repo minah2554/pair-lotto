@@ -10,6 +10,14 @@ export function formatDate(dateStr) {
   return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** SHA-256 해시 함수 */
+export async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** 숫자를 4자리 학번으로 포맷 */
 export function formatStudentNumber(num) {
   return String(num).padStart(4, '0');
@@ -164,6 +172,60 @@ export function showConfirm(message) {
   });
 }
 
+/** 알림 팝업 모달 */
+export function showAlertModal(message, title = '안내') {
+  return new Promise((resolve) => {
+    const existing = document.querySelector('.alert-modal-overlay');
+    if (existing) existing.remove();
+
+    const overlay = el('div', { className: 'modal-overlay alert-modal-overlay' });
+    const modal = el('div', { className: 'modal-box' },
+      el('div', { className: 'modal-head', style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' } },
+        el('span', { style: { fontSize: '24px' } }, '⚠️'),
+        el('h4', { style: { fontSize: '18px', fontWeight: '700', color: 'var(--text)' } }, title)
+      ),
+      el('p', { className: 'modal-message', style: { whiteSpace: 'pre-line', fontSize: '15px', lineHeight: '1.6', color: 'var(--text-secondary)' } }, message),
+      el('div', { className: 'modal-actions', style: { marginTop: '20px', justifyContent: 'flex-end' } },
+        el('button', {
+          className: 'btn btn-primary',
+          style: { minWidth: '80px' },
+          onClick: () => {
+            overlay.classList.remove('show');
+            setTimeout(() => {
+              overlay.remove();
+              resolve(true);
+            }, 200);
+          }
+        }, '확인')
+      )
+    );
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('show'));
+  });
+}
+
+/** 공통 푸터 HTML */
+export function getFooterHTML() {
+  return `
+    <footer class="footer no-print">
+      <div class="footer-in">
+        <div class="f-brand">
+          <img src="/logo-lotto.svg" alt="MINARI STUDIO 로고" style="width: 34px; height: 34px; object-fit: contain;">
+          <div>
+            <span class="f-wm">MINARI STUDIO</span>
+            <span class="f-tag">Classroom Tools for Teachers · 짝꿍 로또</span>
+          </div>
+        </div>
+        <div class="f-legal">
+          © 2026 MINARI STUDIO. All rights reserved.<span class="sep">|</span>PAIR LOTTO Web App v1.2<br>
+          본 웹앱의 디자인·아이콘·소스 코드에 대한 권리는 MINARI STUDIO에 있으며, 무단 복제 및 재배포를 금합니다.
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
 /** 로딩 스피너 표시 */
 export function showLoading(container) {
   const loader = el('div', { className: 'loading-spinner' },
@@ -182,3 +244,4 @@ export function debounce(fn, ms = 300) {
     timer = setTimeout(() => fn(...args), ms);
   };
 }
+

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="ballGrad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#ffe066"/>
+      <stop offset="40%" stop-color="#f59e0b"/>
+      <stop offset="85%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </radialGradient>
+    <radialGradient id="highlight" cx="30%" cy="30%" r="30%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#f59e0b" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  
+  <!-- Outer Glow Circle -->
+  <circle cx="50" cy="50" r="44" fill="url(#ballGrad)" filter="url(#glow)"/>
+  
+  <!-- Ball Highlight for 3D sphere look -->
+  <circle cx="36" cy="34" r="22" fill="url(#highlight)"/>
+  
+  <!-- Inner Ticket / Badge White Circle -->
+  <circle cx="50" cy="50" r="22" fill="#ffffff" stroke="#f59e0b" stroke-width="2.5"/>
+  
+  <!-- 77 Lucky Lotto Text -->
+  <text x="50" y="57" font-family="'BcCardFont', 'Arial Black', sans-serif" font-weight="900" font-size="20" fill="#d97706" text-anchor="middle" letter-spacing="-1">77</text>
+  
+  <!-- Sparkles around ball -->
+  <path d="M 82 22 L 84 27 L 89 29 L 84 31 L 82 36 L 80 31 L 75 29 L 80 27 Z" fill="#ffd166"/>
+  <path d="M 18 70 L 19.5 73.5 L 23 75 L 19.5 76.5 L 18 80 L 16.5 76.5 L 13 75 L 16.5 73.5 Z" fill="#ffd166"/>
+  <circle cx="80" cy="68" r="3" fill="#ffe066"/>
+  <circle cx="22" cy="28" r="2.5" fill="#ffe066"/>
+</svg>

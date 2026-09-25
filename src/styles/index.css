@@ -3,36 +3,67 @@
    기존 프로토타입 스타일을 보존하고 확장합니다.
    =========================================== */
 
-/* ---------- 디자인 토큰 ---------- */
+/* [웹앱 전체 폰트(Typography) 적용 규칙] */
+/* 1) 본문 기본 폰트 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+
+/* 2) 상단 헤더 전용 - 주아체 */
+@font-face {
+  font-family: 'Juache';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/BMJUA.woff') format('woff');
+  font-weight: normal;
+  font-display: swap;
+}
+
+/* 3) 메인 타이틀 & 통계 숫자 & 브랜드 전용 - BC카드체 */
+@font-face {
+  font-family: 'BcCardFont';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-07@1.1/BCcardL.woff') format('woff');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'BcCardFont';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-07@1.1/BCcardB.woff') format('woff');
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* ---------- 디자인 토큰 (NEON ARCADE + LOTTO) ---------- */
 :root {
-  --bg: #0f0f1a;
-  --bg-secondary: #1a1a2e;
-  --card: #1e1e35;
-  --card-hover: #252545;
-  --text: #e8e8f0;
-  --text-secondary: #9898b0;
-  --muted: #6b6b88;
-  --line: #2a2a45;
-  --accent: #7c5cfc;
-  --accent-light: #9b7fff;
-  --accent-glow: rgba(124, 92, 252, 0.3);
-  --accent-bg: rgba(124, 92, 252, 0.12);
-  --good: #22c55e;
-  --good-bg: rgba(34, 197, 94, 0.12);
-  --good-glow: rgba(34, 197, 94, 0.3);
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.12);
+  --bg: #090a16;
+  --bg-secondary: #121429;
+  --card: #171936;
+  --card-hover: #1f2249;
+  --text: #f0f2ff;
+  --text-secondary: #9aa2cc;
+  --muted: #61678f;
+  --line: #262952;
+  --accent: #8b5cf6;
+  --accent-light: #a78bfa;
+  --accent-glow: rgba(139, 92, 246, 0.4);
+  --accent-bg: rgba(139, 92, 246, 0.15);
+  --neon-cyan: #00f0ff;
+  --neon-cyan-glow: 0 0 18px rgba(0, 240, 255, 0.5);
+  --neon-cyan-bg: rgba(0, 240, 255, 0.12);
+  --neon-purple: #b347ff;
+  --neon-purple-glow: 0 0 18px rgba(179, 71, 255, 0.45);
+  --good: #00ff88;
+  --good-bg: rgba(0, 255, 136, 0.12);
+  --good-glow: 0 0 16px rgba(0, 255, 136, 0.4);
+  --danger: #ff2a85;
+  --danger-bg: rgba(255, 42, 133, 0.15);
   --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.12);
-  --gold: #fbbf24;
-  --gold-glow: rgba(251, 191, 36, 0.4);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --warning-bg: rgba(245, 158, 11, 0.15);
+  --gold: #ffd166;
+  --gold-glow: 0 0 20px rgba(255, 209, 102, 0.55);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.65);
   --radius: 16px;
   --radius-sm: 10px;
   --radius-lg: 24px;
-  --font: 'Inter', system-ui, -apple-system, sans-serif;
-  --transition: 0.2s ease;
+  --font: 'Noto Sans KR', sans-serif;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ---------- 리셋 & 기본 ---------- */
@@ -43,7 +74,7 @@
 }
 
 body {
-  font-family: var(--font);
+  font-family: 'Noto Sans KR', sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
@@ -52,16 +83,20 @@ body {
   overflow-x: hidden;
 }
 
-/* 배경 그라데이션 효과 */
+/* 네온 아케이드 배경 그리드 & 글로우 */
 body::before {
   content: '';
   position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 30% 20%, rgba(124, 92, 252, 0.06) 0%, transparent 50%),
-              radial-gradient(circle at 70% 80%, rgba(34, 197, 94, 0.04) 0%, transparent 50%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(139, 92, 246, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 20% 15%, rgba(179, 71, 255, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 80% 85%, rgba(0, 240, 255, 0.1) 0%, transparent 45%);
+  background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
   pointer-events: none;
   z-index: 0;
 }
@@ -111,8 +146,9 @@ a {
 }
 
 .topbar h1 {
-  font-size: 22px;
-  font-weight: 900;
+  font-family: 'Juache', sans-serif;
+  font-size: 18px;
+  line-height: 1.2;
   background: linear-gradient(135deg, var(--gold) 0%, #f97316 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -178,10 +214,12 @@ a {
   background: linear-gradient(90deg, var(--accent), #06b6d4, var(--accent));
 }
 
-.hero-card h2 {
-  font-size: 20px;
-  font-weight: 800;
+.hero-card h2, .hero-main-title {
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
   margin: 6px 0 8px;
+  line-height: 1.3;
 }
 
 .sub {
@@ -695,11 +733,32 @@ a {
 }
 
 .stat b {
-  font-size: 24px;
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
   background: linear-gradient(135deg, var(--text) 0%, var(--accent-light) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* 대시보드 요약 통계 카드 숫자 */
+.sum-num {
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--text) 0%, var(--accent-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.stat .unit {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-left: 3px;
+  font-weight: normal;
 }
 
 /* ---------- 과목 잠금 칩 ---------- */
@@ -1346,3 +1405,487 @@ input[type="file"]::file-selector-button:hover {
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
 .flex-wrap { flex-wrap: wrap; }
+
+/* ---------- 푸터 (Footer) 고정 및 스타일 규칙 ---------- */
+.footer {
+  width: 100%;
+  margin-top: 48px;
+  padding: 32px 16px 40px;
+  border-top: 1px solid var(--line);
+  background: rgba(15, 15, 26, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.footer-in {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.f-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.f-brand > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.f-wm {
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #0f766e;
+  letter-spacing: 0.02em;
+}
+
+.f-tag {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.f-legal {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  text-align: right;
+}
+
+.f-legal .sep {
+  margin: 0 8px;
+  color: var(--line);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-in {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .f-legal {
+    text-align: left;
+  }
+}
+
+/* ---------- 팝업 모달 추가 스타일 ---------- */
+.alert-modal-overlay .modal-box {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 24px rgba(245, 158, 11, 0.15);
+}
+
+/* ===========================================
+   NEON ARCADE + LOTTO GAME UI COMPONENTS
+   =========================================== */
+
+/* 1. 상단 게이머 태그 */
+.player-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+}
+
+.player-tag b {
+  color: var(--neon-cyan);
+}
+
+/* 2. 게임 대시보드 HUD (헤드업 디스플레이) */
+.arcade-hud {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.hud-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 14px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition);
+}
+
+.hud-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+}
+
+.hud-item.hud-pair::before {
+  background: linear-gradient(90deg, transparent, var(--neon-purple), transparent);
+}
+
+.hud-item.hud-mission::before {
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.hud-item.hud-result::before {
+  background: linear-gradient(90deg, transparent, var(--good), transparent);
+}
+
+.hud-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.hud-value {
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.hud-value.highlight-cyan {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+.hud-value.highlight-gold {
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(255, 209, 102, 0.4);
+}
+
+.hud-value.highlight-green {
+  color: var(--good);
+  text-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+}
+
+/* 3. 디지털 LOTTO 아케이드 티켓 */
+.arcade-ticket {
+  background: linear-gradient(145deg, #181a3d 0%, #111327 100%) !important;
+  border: 2px solid rgba(139, 92, 246, 0.35) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(139, 92, 246, 0.05) !important;
+  position: relative;
+  overflow: hidden;
+  padding: 24px 20px !important;
+  margin-bottom: 18px !important;
+}
+
+.arcade-ticket.active {
+  border-color: rgba(0, 240, 255, 0.6) !important;
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.25), inset 0 0 20px rgba(0, 240, 255, 0.05) !important;
+}
+
+.arcade-ticket::after {
+  content: 'LOTTO TICKET';
+  position: absolute;
+  top: 14px;
+  right: -32px;
+  transform: rotate(45deg);
+  background: rgba(255, 209, 102, 0.15);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 3px 36px;
+  pointer-events: none;
+}
+
+/* TARGET 점수판 (가장 크게 강조) */
+.arcade-target-banner {
+  margin: 16px 0;
+  padding: 16px 20px;
+  background: rgba(9, 10, 22, 0.7);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 20px rgba(255, 209, 102, 0.08);
+}
+
+.arcade-target-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.arcade-target-number {
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1.1;
+  background: linear-gradient(180deg, #ffffff 0%, var(--gold) 60%, #f97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 14px rgba(255, 209, 102, 0.5));
+  letter-spacing: -0.02em;
+}
+
+.arcade-buff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-top: 6px;
+}
+
+/* 4. 매칭 프리뷰 카드 */
+.match-preview-card {
+  background: rgba(18, 20, 41, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin: 16px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.match-preview-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.match-vs-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.player-box {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--line);
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.player-box.me {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.player-box.friend {
+  border-color: rgba(0, 240, 255, 0.4);
+}
+
+.player-box .role {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.player-box .pname {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.match-vs-sign {
+  font-family: 'BcCardFont', sans-serif;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 209, 102, 0.5);
+}
+
+/* 5. 퀘스트 보드 (PAIR MISSION) */
+.quest-board {
+  display: grid;
+  gap: 12px;
+}
+
+.quest-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.quest-card.completed {
+  border-color: rgba(0, 255, 136, 0.4);
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(23, 25, 54, 0.9));
+}
+
+.quest-card.completed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--good);
+}
+
+.quest-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.quest-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.btn-arcade-upload {
+  background: linear-gradient(135deg, var(--neon-cyan) 0%, #0099ff 100%);
+  color: #090a16;
+  font-weight: 900;
+  font-size: 14px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 240, 255, 0.35);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.btn-arcade-upload:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(0, 240, 255, 0.55);
+}
+
+/* 6. 인커밍 리퀘스트 (게임 이벤트) */
+.incoming-event-card {
+  background: linear-gradient(135deg, rgba(179, 71, 255, 0.15) 0%, rgba(23, 25, 54, 0.9) 100%);
+  border: 1px solid var(--neon-purple);
+  box-shadow: 0 0 20px rgba(179, 71, 255, 0.25);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 12px;
+  animation: pulseNeon 2s infinite ease-in-out;
+}
+
+@keyframes pulseNeon {
+  0%, 100% { border-color: rgba(179, 71, 255, 0.6); box-shadow: 0 0 16px rgba(179, 71, 255, 0.25); }
+  50% { border-color: rgba(0, 240, 255, 0.9); box-shadow: 0 0 24px rgba(0, 240, 255, 0.4); }
+}
+
+/* 7. PAIR MATCH 연출 오버레이 */
+.pair-match-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(9, 10, 22, 0.88);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: matchIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pair-match-content {
+  text-align: center;
+  padding: 36px 30px;
+  background: linear-gradient(145deg, #1e1b4b 0%, #0f1026 100%);
+  border: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 50px rgba(0, 240, 255, 0.45);
+  border-radius: var(--radius-lg);
+  max-width: 420px;
+  width: 90%;
+}
+
+.pair-match-title {
+  font-family: 'BcCardFont', sans-serif;
+  font-weight: 700;
+  font-size: 36px;
+  background: linear-gradient(135deg, var(--gold) 0%, #ff2a85 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(255, 209, 102, 0.5));
+}
+
+.pair-match-players {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 14px 0 6px;
+}
+
+.pair-match-target {
+  font-family: 'BcCardFont', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--gold);
+  text-shadow: 0 0 14px rgba(255, 209, 102, 0.5);
+}
+
+@keyframes matchIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 8. 결과 롤링 애니메이션 */
+.result-reveal-box {
+  margin: 14px 0;
+  padding: 24px;
+  background: rgba(9, 10, 22, 0.7);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .arcade-hud {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .form-grid-cols {
+    grid-template-columns: 1fr;
+  }
+  .arcade-target-number {
+    font-size: 38px;
+  }
+}
+
+

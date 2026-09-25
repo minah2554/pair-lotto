@@ -6,7 +6,7 @@
 import { api } from '../services/index.js';
 import { state, clearAdminSession, notify } from '../state.js';
 import { TARGET_OPTIONS, BASE_RANGE, BONUS_PER_MISSION, NEAR_MISS_RANGE } from '../config.js';
-import { el, showToast, showConfirm, parseCSV, formatDate } from '../utils/helpers.js';
+import { el, showToast, showConfirm, parseCSV, getFooterHTML, formatDate } from '../utils/helpers.js';
 
 let currentTab = 'dashboard';
 
@@ -54,6 +54,9 @@ function buildAdminShell() {
     <div id="adminContent">
       <div class="loading-spinner"><div class="spinner"></div><p>로딩 중...</p></div>
     </div>
+
+    <!-- 웹앱 공통 푸터 -->
+    ${getFooterHTML()}
   `;
 }
 
@@ -148,14 +151,14 @@ function renderDashboard(content) {
     </div>
 
     <div class="stats-grid">
-      <div class="stat"><span>전체 학생</span><b>${stats.totalStudents || 0}명</b></div>
-      <div class="stat"><span>성사 PAIR</span><b>${stats.activePairs || 0}팀</b></div>
-      <div class="stat"><span>대기 신청</span><b>${stats.pendingRequests || 0}건</b></div>
-      <div class="stat"><span>미션 완료</span><b>${stats.completedMissions || 0}건</b></div>
-      <div class="stat"><span>미응모 학생</span><b>${stats.studentsWithoutPairs || 0}명</b></div>
-      <div class="stat"><span>점수 업로드</span><b>${stats.resultsUploaded ? '완료' : '대기'}</b></div>
-      <div class="stat"><span>당첨 PAIR</span><b>${stats.winCount || 0}팀</b></div>
-      <div class="stat"><span>현재 상태</span><b style="color:${state.applicationStatus.globalOpen ? 'var(--good)' : 'var(--danger)'}">${state.applicationStatus.globalOpen ? 'OPEN' : 'CLOSE'}</b></div>
+      <div class="stat"><span>전체 학생</span><b class="sum-num">${stats.totalStudents || 0}</b><span class="unit">명</span></div>
+      <div class="stat"><span>성사 PAIR</span><b class="sum-num">${stats.activePairs || 0}</b><span class="unit">팀</span></div>
+      <div class="stat"><span>대기 신청</span><b class="sum-num">${stats.pendingRequests || 0}</b><span class="unit">건</span></div>
+      <div class="stat"><span>미션 완료</span><b class="sum-num">${stats.completedMissions || 0}</b><span class="unit">건</span></div>
+      <div class="stat"><span>미응모 학생</span><b class="sum-num">${stats.studentsWithoutPairs || 0}</b><span class="unit">명</span></div>
+      <div class="stat"><span>점수 업로드</span><b class="sum-num" style="font-size:26px">${stats.resultsUploaded ? '완료' : '대기'}</b></div>
+      <div class="stat"><span>당첨 PAIR</span><b class="sum-num">${stats.winCount || 0}</b><span class="unit">팀</span></div>
+      <div class="stat"><span>현재 상태</span><b class="sum-num" style="font-size:26px;color:${state.applicationStatus.globalOpen ? 'var(--good)' : 'var(--danger)'}">${state.applicationStatus.globalOpen ? 'OPEN' : 'CLOSE'}</b></div>
     </div>
   `;
 
@@ -185,11 +188,21 @@ function renderStudentsTab(content) {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>학번</th><th>이름</th><th>반</th><th>PAIR 수</th></tr></thead>
+          <thead><tr><th>학번</th><th>이름</th><th>반</th><th>PAIR 수</th><th>관리</th></tr></thead>
           <tbody>
             ${state.students.map(s => {
               const pairCount = (state.myPairs || []).filter(p => (p.studentA === s.studentId || p.studentB === s.studentId) && p.status === 'ACTIVE').length;
-              return `<tr><td>${s.studentNumber}</td><td>${s.studentName}</td><td>${s.classId}</td><td>${pairCount}</td></tr>`;
+              return `
+                <tr>
+                  <td>${s.studentNumber}</td>
+                  <td>${s.studentName}</td>
+                  <td>${s.classId}</td>
+                  <td>${pairCount}</td>
+                  <td>
+                    <button class="btn btn-ghost btn-mini reset-pin-btn" data-id="${s.studentId}" data-num="${s.studentNumber}" data-name="${s.studentName}">🔑 PIN 변경</button>
+                  </td>
+                </tr>
+              `;
             }).join('')}
           </tbody>
         </table>
@@ -204,9 +217,30 @@ function renderStudentsTab(content) {
         <input type="file" id="studentCsvFile" accept=".csv" />
         <button id="uploadStudentCsvBtn" class="btn btn-primary">업로드</button>
       </div>
-      <p class="help mt-1">형식: studentNumber,studentName,classId (첫 줄은 헤더)</p>
+      <p class="help mt-1">형식: studentNumber,studentName,classId (첫 줄은 헤더) · 학생 개인정보(전화번호 등)는 수집하지 않습니다.</p>
     </section>
   `;
+
+  // 학생 PIN 변경 이벤트
+  content.querySelectorAll('.reset-pin-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const studentId = btn.dataset.id;
+      const studentNumber = btn.dataset.num;
+      const studentName = btn.dataset.name;
+      const newPin = window.prompt(`[${studentNumber} ${studentName}] 학생의 새 4자리 PIN을 입력하세요:`, '1234');
+      if (!newPin) return;
+      if (newPin.length !== 4 || isNaN(newPin)) {
+        showToast('PIN은 4자리 숫자여야 합니다.', 'error');
+        return;
+      }
+      try {
+        await api.updateStudentPin(studentId, newPin, studentNumber);
+        showToast(`${studentName} 학생의 PIN이 [${newPin}]로 변경되었습니다.`, 'success');
+      } catch (err) {
+        showToast(err.message || 'PIN 변경에 실패했습니다.', 'error');
+      }
+    });
+  });
 
   content.querySelector('#uploadStudentCsvBtn')?.addEventListener('click', async () => {
     const file = document.getElementById('studentCsvFile')?.files[0];

@@ -87,6 +87,11 @@ export function setupPin(studentNumber, studentName, pin) {
   return callApiPost('setupPin', { studentNumber, studentName, pin });
 }
 
+/** 관리자: 학생 PIN 변경/재설정 */
+export function updateStudentPin(studentId, newPin, studentNumber = '') {
+  return callApiPost('updateStudentPin', { studentId, newPin, studentNumber });
+}
+
 /** PAIR 신청 보내기 */
 export function createPairRequest(fromId, toId, subjectId, target) {
   return callApiPost('createPairRequest', { fromId, toId, subjectId, target });
@@ -115,6 +120,11 @@ export function rejectPairRequest(requestId, responderId) {
 /** PAIR 신청 취소 (신청자가) */
 export function cancelPairRequest(requestId, studentId) {
   return callApiPost('cancelPairRequest', { requestId, studentId });
+}
+
+/** 성사된 PAIR 끊기 / 해제 (신청 변경 기간 동안 가능) */
+export function cancelPair(pairId, studentId) {
+  return callApiPost('cancelPair', { pairId, studentId });
 }
 
 /** 내 PAIR 현황 조회 */

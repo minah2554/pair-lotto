@@ -100,6 +100,7 @@ function handleAction(action, params) {
     // 학생
     case 'loginStudent': return loginStudent_(params);
     case 'setupPin': return setupPin_(params);
+    case 'updateStudentPin': return updateStudentPin_(params);
     case 'getStudentHome': return getStudentHome_(params);
     case 'createPairRequest': return createPairRequest_(params);
     case 'getReceivedRequests': return getReceivedRequests_(params);
@@ -107,6 +108,7 @@ function handleAction(action, params) {
     case 'acceptPairRequest': return acceptPairRequest_(params);
     case 'rejectPairRequest': return rejectPairRequest_(params);
     case 'cancelPairRequest': return cancelPairRequest_(params);
+    case 'cancelPair': return cancelPair_(params);
     case 'getMyPairs': return getMyPairs_(params);
     case 'getMissionStatus': return getMissionStatus_(params);
     case 'submitMission': return submitMission_(params);
@@ -293,6 +295,23 @@ function setupPin_(params) {
   }
 }
 
+/** 관리자: 학생 PIN 변경/재설정 */
+function updateStudentPin_(params) {
+  const { studentId, studentNumber, newPin } = params;
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getSheet_(SHEETS.STUDENTS);
+    const data = sheet.getDataRange().getValues();
+    const idx = data.findIndex((r, i) => i > 0 && (String(r[0]) === studentId || String(r[1]) === studentNumber));
+    if (idx < 0) throw new Error('학생을 찾을 수 없습니다.');
+    sheet.getRange(idx + 1, 5).setValue(newPin);
+    return { ok: true, message: '학생 PIN이 변경되었습니다.' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function uploadStudents_(params) {
   const lines = params.csvData.trim().split('\n');
   if (lines.length < 2) throw new Error('CSV 데이터가 비어있습니다.');
@@ -344,20 +363,24 @@ function createPairRequest_(params) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    // 중복 PAIR 검사
+    // 1인 1페어 원칙 검사 (신청자 또는 상대방이 이미 성사된 활성 페어가 있는 경우)
     const pairs = getPairsList_();
-    const hasPair = pairs.some(p =>
-      p.subjectId === subjectId && p.status === 'ACTIVE' &&
-      (p.studentA === fromId || p.studentB === fromId || p.studentA === toId || p.studentB === toId)
+    const fromHasPair = pairs.some(p =>
+      p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
     );
-    if (hasPair) throw new Error('해당 과목에서 이미 성사된 PAIR가 있습니다.');
+    if (fromHasPair) throw new Error('이미 페어가 완료되었습니다.');
 
-    // 중복 신청 검사
+    const toHasPair = pairs.some(p =>
+      p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+    );
+    if (toHasPair) throw new Error('이미 페어가 완료되었습니다.');
+
+    // 동일 친구에게 대기 중인 신청 검사
     const requests = getRequestsList_();
     const hasPending = requests.some(r =>
-      r.subjectId === subjectId && r.status === 'PENDING' && r.fromId === fromId
+      r.subjectId === subjectId && r.status === 'PENDING' && r.fromId === fromId && r.toId === toId
     );
-    if (hasPending) throw new Error('이미 해당 과목에서 대기 중인 신청이 있습니다.');
+    if (hasPending) throw new Error('이미 해당 친구에게 대기 중인 신청이 있습니다.');
 
     const requestId = Utilities.getUuid();
     const sheet = getSheet_(SHEETS.PAIR_REQUESTS);
@@ -413,15 +436,17 @@ function acceptPairRequest_(params) {
     const fromId = String(row[2]);
     const toId = String(row[3]);
 
-    if (!isApplicationOpen_(subjectId)) throw new Error('응모가 마감되었습니다.');
+    if (!isApplicationOpen_(subjectId)) throw new Error('신청 변경 기간이 마감되었습니다.');
 
-    // 중복 PAIR 검사
+    // 1인 1페어 원칙 검사: 상대방 또는 본인이 이미 활성 페어가 있는지 확인
     const pairs = getPairsList_();
-    const dup = pairs.some(p =>
-      p.subjectId === subjectId && p.status === 'ACTIVE' &&
-      (p.studentA === fromId || p.studentB === fromId || p.studentA === toId || p.studentB === toId)
+    const fromHasPair = pairs.some(p =>
+      p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
     );
-    if (dup) throw new Error('이미 다른 PAIR가 성사되었습니다.');
+    const toHasPair = pairs.some(p =>
+      p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+    );
+    if (fromHasPair || toHasPair) throw new Error('이미 페어가 완료되었습니다.');
 
     // 신청 상태 변경
     sheet.getRange(idx + 1, 6).setValue('ACCEPTED');
@@ -432,7 +457,51 @@ function acceptPairRequest_(params) {
     const baseRange = Number(getSetting_('BASE_RANGE') || 5);
     pairSheet.appendRow([pairId, subjectId, fromId, toId, Number(row[4]), baseRange, 'ACTIVE', new Date().toISOString()]);
 
+    // 두 학생의 다른 모든 PENDING 신청 취소 처리
+    for (let i = 1; i < data.length; i++) {
+      if (i !== idx && String(data[i][5]) === 'PENDING') {
+        const f = String(data[i][2]);
+        const t = String(data[i][3]);
+        if (f === fromId || t === fromId || f === toId || t === toId) {
+          sheet.getRange(i + 1, 6).setValue('CANCELLED');
+        }
+      }
+    }
+
     return { ok: true, pairId };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 성사된 페어 해제 (페어 끊기) - 신청 변경 기간 내 가능 */
+function cancelPair_(params) {
+  const { pairId, studentId } = params;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const pairSheet = getSheet_(SHEETS.PAIRS);
+    const data = pairSheet.getDataRange().getValues();
+    const idx = data.findIndex((r, i) => i > 0 && String(r[0]) === pairId);
+    if (idx < 0) throw new Error('페어 정보를 찾을 수 없습니다.');
+
+    const row = data[idx];
+    const subjectId = String(row[1]);
+    const studentA = String(row[2]);
+    const studentB = String(row[3]);
+
+    if (studentA !== studentId && studentB !== studentId) {
+      throw new Error('권한이 없습니다.');
+    }
+
+    if (!isApplicationOpen_(subjectId)) {
+      throw new Error('신청 변경 기간이 마감되어 페어를 수정할 수 없습니다.');
+    }
+
+    // 상태를 CANCELLED로 변경
+    pairSheet.getRange(idx + 1, 7).setValue('CANCELLED');
+    return { ok: true, message: '페어가 성공적으로 해제되었습니다.' };
   } finally {
     lock.releaseLock();
   }

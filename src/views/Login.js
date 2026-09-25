@@ -4,17 +4,18 @@
  */
 import { api } from '../services/index.js';
 import { state, saveSession, notify } from '../state.js';
-import { el, showToast } from '../utils/helpers.js';
+import { el, showToast, getFooterHTML } from '../utils/helpers.js';
 
 export function renderLogin(container) {
   container.innerHTML = '';
 
+  const wrapper = el('div', { className: 'login-wrapper', style: { minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' } });
   const loginContainer = el('div', { className: 'login-container' });
   const box = el('div', { className: 'login-box' });
 
   box.innerHTML = `
     <div class="login-logo">🎰</div>
-    <h1 class="login-title">PAIR LOTTO</h1>
+    <h1 class="login-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 28px;">PAIR LOTTO</h1>
     <p class="login-subtitle">시험기간 협동 활동</p>
 
     <div id="loginStep" class="login-form">
@@ -62,7 +63,13 @@ export function renderLogin(container) {
   `;
 
   loginContainer.appendChild(box);
-  container.appendChild(loginContainer);
+  wrapper.appendChild(loginContainer);
+
+  const footerWrapper = document.createElement('div');
+  footerWrapper.innerHTML = getFooterHTML();
+  wrapper.appendChild(footerWrapper.firstElementChild);
+
+  container.appendChild(wrapper);
 
   // --- 이벤트 연결 ---
   const loginStep = box.querySelector('#loginStep');
