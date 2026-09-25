@@ -8,7 +8,7 @@
 export const API_URL = import.meta.env.VITE_APPS_SCRIPT_API_URL || '';
 
 /** Google Drive 미션 사진 폴더 ID - Apps Script에서 설정 */
-export const DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID_HERE';
+export const DRIVE_FOLDER_ID = '1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR';
 
 /** Polling 주기 (ms) - 학생 화면 자동 새로고침 */
 export const POLL_INTERVAL = 7000;
@@ -35,4 +35,4 @@ export const IMAGE_QUALITY = 0.7;
 export const STUDENT_NUMBER_DIGITS = 4;
 
 /** 앱 버전 */
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.2.0';

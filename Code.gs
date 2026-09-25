@@ -29,7 +29,7 @@ const SHEETS = {
 
 // ==================== 스프레드시트 접근 ====================
 function getSs_() {
-  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '1q8G2Btlmj5c8SqxoxnSgSNL3gx5W8ESsuIUXv1GkbVQ';
   if (!id) throw new Error('SPREADSHEET_ID가 설정되지 않았습니다.');
   return SpreadsheetApp.openById(id);
 }
@@ -678,7 +678,7 @@ function submitMission_(params) {
     let fileId = '';
     let fileUrl = '';
     if (params.base64) {
-      const folderId = PropertiesService.getScriptProperties().getProperty('MISSION_FOLDER_ID');
+      const folderId = PropertiesService.getScriptProperties().getProperty('MISSION_FOLDER_ID') || '1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR';
       if (folderId) {
         const bytes = Utilities.base64Decode(params.base64);
         const blob = Utilities.newBlob(bytes, params.mimeType || 'image/jpeg', params.fileName || 'mission.jpg');

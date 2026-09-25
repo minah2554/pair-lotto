@@ -211,15 +211,15 @@ export function getFooterHTML() {
     <footer class="footer no-print">
       <div class="footer-in">
         <div class="f-brand">
-          <img src="/logo-lotto.svg" alt="MINARI STUDIO 로고" style="width: 34px; height: 34px; object-fit: contain;">
+          <img src="/logo-lotto.svg" alt="MINARI STUDIO 로고" style="width: 26px; height: 26px; object-fit: contain;">
           <div>
             <span class="f-wm">MINARI STUDIO</span>
-            <span class="f-tag">Classroom Tools for Teachers · 짝꿍 로또</span>
+            <span class="f-tag">Classroom Tools · Pair Lotto</span>
           </div>
         </div>
         <div class="f-legal">
-          © 2026 MINARI STUDIO. All rights reserved.<span class="sep">|</span>PAIR LOTTO Web App v1.2<br>
-          본 웹앱의 디자인·아이콘·소스 코드에 대한 권리는 MINARI STUDIO에 있으며, 무단 복제 및 재배포를 금합니다.
+          © 2026 MINARI STUDIO · Pair Lotto Web App v1.2<br>
+          <span class="f-subtext">디자인·소스 권리는 MINARI STUDIO에 귀속되며 무단 재배포를 금합니다.</span>
         </div>
       </div>
     </footer>

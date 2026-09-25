@@ -1875,16 +1875,297 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--line);
 }
 
+/* 9. 로그인 화면 - 플레이 가이드 (선생님 설명 없이 시작) */
+.login-rules-card {
+  margin-top: 16px;
+  background: rgba(18, 20, 42, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.rules-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.rules-badge {
+  background: linear-gradient(135deg, var(--neon-cyan) 0%, var(--neon-purple) 100%);
+  color: #0b0c1b;
+  font-size: 10.5px;
+  font-weight: 900;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.rules-tagline {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.rules-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.rule-card-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  padding: 10px 14px;
+  border-radius: 10px;
+  transition: all var(--transition);
+}
+
+.rule-card-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+.rule-step-badge {
+  background: rgba(255, 209, 102, 0.15);
+  color: var(--gold);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.rule-body {
+  flex: 1;
+}
+
+.rule-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.rule-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ===========================================
+   스마트폰 세로 화면 (Mobile-First) 점검 및 최적화
+   =========================================== */
 @media (max-width: 640px) {
-  .arcade-hud {
-    grid-template-columns: 1fr;
+  /* 가로 스크롤 원천 차단 */
+  html, body, #app, .app-shell, .page-container, .login-wrapper {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .login-container {
+    padding: 16px 12px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .login-box {
+    padding: 24px 18px;
+  }
+
+  /* 입력창 터치 및 iOS 확대 방지 (16px) */
+  .form-input, .form-select {
+    font-size: 16px !important;
+    min-height: 46px;
+    padding: 10px 12px;
+  }
+
+  /* 모바일 버튼 터치 높이 (최소 44px) */
+  .btn {
+    min-height: 44px;
+    font-size: 14px;
+    touch-action: manipulation;
+  }
+
+  .btn-mini {
+    min-height: 38px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* 상단 헤더 모바일 정렬 */
+  .topbar {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .topbar-brand {
     gap: 8px;
   }
-  .form-grid-cols {
-    grid-template-columns: 1fr;
+
+  .topbar-brand h1 {
+    font-size: 18px !important;
   }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .player-tag {
+    font-size: 11.5px;
+    padding: 4px 10px;
+  }
+
+  /* 게임 대시보드 HUD: 모바일 3분할 콤팩트 게이지 */
+  .arcade-hud {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 14px;
+  }
+
+  .hud-item {
+    padding: 10px 4px !important;
+    border-radius: 10px;
+  }
+
+  .hud-label {
+    font-size: 9px !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 4px;
+  }
+
+  .hud-value {
+    font-size: 13px !important;
+    line-height: 1.2;
+    word-break: break-all;
+  }
+
+  /* TARGET 점수판 모바일 스케일링 */
+  .arcade-target-banner {
+    padding: 12px 14px;
+    margin: 12px 0;
+  }
+
+  .arcade-target-label {
+    font-size: 10px;
+  }
+
   .arcade-target-number {
-    font-size: 38px;
+    font-size: 34px !important;
+  }
+
+  /* 매칭 프리뷰 카드 */
+  .match-preview-card {
+    padding: 14px 12px;
+  }
+
+  .match-vs-box {
+    gap: 6px;
+  }
+
+  .player-box {
+    padding: 8px 6px;
+  }
+
+  .player-box .role {
+    font-size: 9px;
+  }
+
+  .player-box .pname {
+    font-size: 12.5px;
+  }
+
+  .match-vs-sign {
+    font-size: 18px;
+  }
+
+  /* 과목 및 친구 선택 폼 */
+  .form-grid-cols {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  /* 퀘스트 보드 카드 (가로 눌림 방지: 모바일 세로 배치) */
+  .quest-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 16px 14px !important;
+  }
+
+  .quest-card .btn-arcade-upload {
+    width: 100% !important;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  /* 디지털 로또 티켓 */
+  .arcade-ticket {
+    padding: 18px 14px !important;
+  }
+
+  .ticket-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .ticket-actions .btn {
+    width: 100%;
+  }
+
+  /* 콤팩트 모바일 푸터 (최대 2~3줄) */
+  .footer {
+    padding: 14px 12px 18px !important;
+    margin-top: 24px !important;
+  }
+
+  .footer-in {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 6px !important;
+  }
+
+  .f-brand {
+    justify-content: center !important;
+    gap: 8px !important;
+  }
+
+  .f-brand img {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .f-wm {
+    font-size: 13px !important;
+  }
+
+  .f-tag {
+    font-size: 10.5px !important;
+  }
+
+  .f-legal {
+    text-align: center !important;
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .f-legal .f-subtext {
+    font-size: 9.5px !important;
+    opacity: 0.8;
   }
 }
 

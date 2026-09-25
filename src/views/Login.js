@@ -62,7 +62,41 @@ export function renderLogin(container) {
     </div>
   `;
 
+  const rulesCard = el('div', {
+    className: 'login-rules-card',
+    htmlContent: `
+      <div class="rules-badge-row">
+        <span class="rules-badge">⚡ PLAY GUIDE</span>
+        <span class="rules-tagline">선생님 설명 없이 바로 시작하는 3단계 규칙</span>
+      </div>
+      <div class="rules-grid">
+        <div class="rule-card-item">
+          <div class="rule-step-badge">STEP 1</div>
+          <div class="rule-body">
+            <div class="rule-title">🤝 친구와 1:1 페어 맺기</div>
+            <div class="rule-desc">함께 공부할 짝꿍과 과목별 목표 합산 점수(TARGET)를 정해 신청하고 수락해요! (1인 1페어)</div>
+          </div>
+        </div>
+        <div class="rule-card-item">
+          <div class="rule-step-badge">STEP 2</div>
+          <div class="rule-body">
+            <div class="rule-title">📸 퀘스트 인증 & 버프 UP</div>
+            <div class="rule-desc">시험 전 예상문제 공유, 오답정리 사진을 인증하면 당첨 오차 범위(BONUS)가 넓어져요!</div>
+          </div>
+        </div>
+        <div class="rule-card-item">
+          <div class="rule-step-badge">STEP 3</div>
+          <div class="rule-body">
+            <div class="rule-title">🎰 시험 후 로또 결과 오픈!</div>
+            <div class="rule-desc">성적 발표 후 두 사람 점수 합계가 TARGET 범위에 적중하면 대박 잭팟(JACKPOT) 당첨!</div>
+          </div>
+        </div>
+      </div>
+    `
+  });
+
   loginContainer.appendChild(box);
+  loginContainer.appendChild(rulesCard);
   wrapper.appendChild(loginContainer);
 
   const footerWrapper = document.createElement('div');
