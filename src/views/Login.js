@@ -16,9 +16,14 @@ export function renderLogin(container) {
   box.innerHTML = `
     <!-- 1. 브랜드 헤더 (클릭 시 관리자 모드 시크릿 진입) -->
     <div class="login-brand-header" id="adminSecretTrigger" title="PAIR LOTTO" style="cursor: pointer; user-select: none;">
-      <div class="login-logo">🎰</div>
-      <h1 class="login-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 30px; margin-bottom: 4px;">PAIR LOTTO</h1>
-      <p class="login-subtitle">시험기간 점수 예측 활동</p>
+      <div class="login-logo">
+        <img src="/logo-lotto.svg" alt="PAIR LOTTO 로고" style="width: 52px; height: 52px; object-fit: contain;" />
+      </div>
+      <div style="display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+        <img src="/logo-lotto.svg" alt="로고" style="width: 26px; height: 26px; object-fit: contain; vertical-align: middle;" />
+        <h1 class="login-title" id="board-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 30px; margin-bottom: 0; display: inline-block;">PAIR LOTTO</h1>
+      </div>
+      <p class="login-subtitle" style="margin-top: 6px;">시험기간 점수 예측 활동</p>
     </div>
 
     <!-- 2. 게임 설명 (학번/PIN 입력 전 먼저 읽도록 배치) -->

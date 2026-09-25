@@ -25,7 +25,7 @@ function buildAdminShell() {
   return `
     <header class="topbar">
       <div class="topbar-brand">
-        <span class="logo-icon">🎰</span>
+        <span class="logo-icon"><img src="/logo-lotto.svg" alt="PAIR LOTTO 로고" style="width: 28px; height: 28px; object-fit: contain;" /></span>
         <div>
           <div class="eyebrow">관리자 모드</div>
           <h1>PAIR LOTTO</h1>

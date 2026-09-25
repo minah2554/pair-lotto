@@ -50,7 +50,7 @@ function buildStudentHTML() {
     <!-- 상단바 -->
     <header class="topbar">
       <div class="topbar-brand">
-        <span class="logo-icon">🎰</span>
+        <span class="logo-icon"><img src="/logo-lotto.svg" alt="PAIR LOTTO 로고" style="width: 28px; height: 28px; object-fit: contain;" /></span>
         <div>
           <h1 style="font-family: 'Juache', sans-serif; font-size: 20px; line-height: 1.2;">PAIR LOTTO</h1>
           <div class="eyebrow" style="font-size: 10px; color: var(--neon-cyan); letter-spacing: 0.08em;">MATCH YOUR SCORE. WIN TOGETHER.</div>

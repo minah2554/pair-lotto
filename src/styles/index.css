@@ -141,7 +141,18 @@ a {
 }
 
 .topbar-brand .logo-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 28px;
+  filter: drop-shadow(0 0 8px var(--gold-glow));
+}
+
+.topbar-brand .logo-icon img,
+.topbar-brand img.logo-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
   filter: drop-shadow(0 0 8px var(--gold-glow));
 }
 
@@ -923,8 +934,18 @@ tr:hover td {
 }
 
 .login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 48px;
   margin-bottom: 8px;
+  filter: drop-shadow(0 0 12px var(--gold-glow));
+}
+
+.login-logo img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
   filter: drop-shadow(0 0 12px var(--gold-glow));
 }
 
