@@ -302,14 +302,11 @@ export function getFooterHTML() {
     <footer class="footer no-print">
       <div class="footer-in">
         <div class="f-brand">
-          <img src="/logo-lotto.svg" alt="MINARI STUDIO 로고" style="width: 24px; height: 24px; object-fit: contain;">
-          <div>
-            <span class="f-wm">MINARI STUDIO</span>
-            <span class="f-tag">Classroom Tools · Pair Lotto</span>
-          </div>
+          <img src="/logo-lotto.svg" alt="MINARI STUDIO 로고" style="width: 20px; height: 20px; object-fit: contain; opacity:0.7;">
+          <span class="f-tag">Classroom Tools for Teachers · PAIR LOTTO</span>
         </div>
         <div class="f-legal">
-          <span>© 2026 MINARI STUDIO. All rights reserved.</span>
+          <span>© 2026 MINARI STUDIO. All rights reserved.&nbsp;|&nbsp;PAIR LOTTO Web App v6.0</span>
         </div>
       </div>
     </footer>

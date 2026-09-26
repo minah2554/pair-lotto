@@ -82,7 +82,7 @@ function buildStudentHTML() {
     <!-- 도착한 페어 신청 -->
     <section class="card" id="receivedRequestsSection">
       <div class="card-head">
-        <h3>도착한 페어 신청</h3>
+        <h3>📬 STEP 1 &nbsp; 도착한 페어 신청</h3>
         <span class="badge badge-warning" id="requestCount">0</span>
       </div>
       <div id="receivedRequestsList">
@@ -95,7 +95,7 @@ function buildStudentHTML() {
     <!-- 나의 PAIR LOTTO 응모권 -->
     <section class="card">
       <div class="card-head">
-        <h3>나의 PAIR LOTTO 응모권</h3>
+        <h3>🎟️ STEP 2 &nbsp; 나의 PAIR LOTTO 응모권</h3>
         <span class="badge badge-neutral">최대 2개 페어 가능</span>
       </div>
       <div id="myTickets">
@@ -106,7 +106,7 @@ function buildStudentHTML() {
     <!-- 나의 짝꿍 선택하기 -->
     <section class="card" id="newRequestSection">
       <div class="card-head">
-        <h3>나의 짝꿍 선택하기</h3>
+        <h3>💑 STEP 3 &nbsp; 나의 짝꿍 선택하기</h3>
         <span class="badge" id="applyStatusBadge">확인 중</span>
       </div>
       <div class="form-grid">
@@ -157,7 +157,7 @@ function buildStudentHTML() {
     <!-- 페어 미션 퀘스트 -->
     <section class="card" id="missionSection">
       <div class="card-head">
-        <h3>페어 미션 퀘스트</h3>
+        <h3>🎯 STEP 4 &nbsp; 페어 미션 퀘스트</h3>
         <span class="badge badge-neutral" id="missionBadge">-</span>
       </div>
       <div id="missionContent">
@@ -171,7 +171,7 @@ function buildStudentHTML() {
     <!-- PAIR LOTTO 결과 확인 -->
     <section class="card" id="resultSection">
       <div class="card-head">
-        <h3>PAIR LOTTO 결과 확인</h3>
+        <h3>🏆 STEP 5 &nbsp; PAIR LOTTO 결과 확인</h3>
         <span class="badge badge-neutral">결과 대기</span>
       </div>
       <div id="resultContent">
@@ -457,28 +457,57 @@ function updateNewRequestForm() {
   const helpText = document.getElementById('newRequestHelp');
   if (!subjectSelect || !friendSelect || !targetSelect) return;
 
+  // 폴링 중 선택값 보존 (선택 초기화 방지)
+  const prevSubject = subjectSelect.value;
+  const prevFriend = friendSelect.value;
+  const prevTarget = targetSelect.value;
+
   const globalOpen = state.applicationStatus.globalOpen;
   const hasActivePair = state.myPairs.some(p => p.status === 'ACTIVE');
 
-  // 과목 목록
-  subjectSelect.innerHTML = '';
-  state.subjects.forEach(s => {
+  // 과목 옵션 갱신 (옵션 구성이 변경된 경우에만 DOM 재구성하여 드롭다운 풀림 방지)
+  const currentSubjectOpts = Array.from(subjectSelect.options).map(o => o.value + ':' + o.disabled).join('|');
+  const newSubjectOpts = state.subjects.map(s => {
     const subOpen = state.applicationStatus.subjects[s.subjectId] !== false;
-    const opt = document.createElement('option');
-    opt.value = s.subjectId;
-    opt.textContent = s.subjectName + (subOpen ? '' : ' (마감)');
-    opt.disabled = !subOpen || !globalOpen;
-    subjectSelect.appendChild(opt);
-  });
+    return s.subjectId + ':' + (!subOpen || !globalOpen);
+  }).join('|');
 
-  // 친구 목록 (자기 자신 제외)
-  friendSelect.innerHTML = '<option value="">-- 친구 선택 --</option>';
-  state.students.filter(s => s.studentId !== state.student?.studentId).forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s.studentId;
-    opt.textContent = `${s.studentNumber} ${s.studentName}`;
-    friendSelect.appendChild(opt);
-  });
+  if (currentSubjectOpts !== newSubjectOpts || subjectSelect.options.length === 0) {
+    subjectSelect.innerHTML = '';
+    state.subjects.forEach(s => {
+      const subOpen = state.applicationStatus.subjects[s.subjectId] !== false;
+      const opt = document.createElement('option');
+      opt.value = s.subjectId;
+      opt.textContent = s.subjectName + (subOpen ? '' : ' (마감)');
+      opt.disabled = !subOpen || !globalOpen;
+      subjectSelect.appendChild(opt);
+    });
+    if (prevSubject && Array.from(subjectSelect.options).some(o => o.value === prevSubject)) {
+      subjectSelect.value = prevSubject;
+    }
+  }
+
+  // 친구 옵션 갱신 (옵션 구성이 변경된 경우에만 DOM 재구성)
+  const otherStudents = state.students.filter(s => s.studentId !== state.student?.studentId);
+  const currentFriendOpts = Array.from(friendSelect.options).map(o => o.value).join('|');
+  const newFriendOpts = [''].concat(otherStudents.map(s => s.studentId)).join('|');
+
+  if (currentFriendOpts !== newFriendOpts || friendSelect.options.length === 0) {
+    friendSelect.innerHTML = '<option value="">-- 친구 선택 --</option>';
+    otherStudents.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.studentId;
+      opt.textContent = `${s.studentNumber} ${s.studentName}`;
+      friendSelect.appendChild(opt);
+    });
+    if (prevFriend && Array.from(friendSelect.options).some(o => o.value === prevFriend)) {
+      friendSelect.value = prevFriend;
+    }
+  }
+
+  if (prevTarget && Array.from(targetSelect.options).some(o => o.value === prevTarget)) {
+    targetSelect.value = prevTarget;
+  }
 
   // 매칭 프리뷰 실시간 동기화
   const syncPreview = () => {

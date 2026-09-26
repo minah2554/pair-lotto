@@ -156,18 +156,14 @@ export function handleDemoApi(action, params) {
       const pin = formatPin(params.pin);
       let student = DEMO_STUDENTS.find(s => formatStudentNumber(s.studentNumber) === studentNumber);
       if (!student) {
-        student = {
-          studentId: 's' + studentNumber,
-          studentNumber,
-          studentName: `학생(${studentNumber})`,
-          classId: studentNumber.length >= 2 ? studentNumber.slice(0, 2) : '1-1'
-        };
-        DEMO_STUDENTS.push(student);
+        return { error: '등록되지 않은 학생입니다. [처음이에요] 버튼을 눌러 먼저 초기 비밀번호를 설정해주세요.' };
       }
-      if (demoState.pins[studentNumber] && formatPin(demoState.pins[studentNumber]) !== pin) {
+      if (!demoState.pins[studentNumber]) {
+        return { error: '초기 비밀번호가 설정되지 않은 학생입니다. [처음이에요] 버튼을 눌러 초기 비밀번호를 먼저 설정해주세요.', needsSetup: true };
+      }
+      if (formatPin(demoState.pins[studentNumber]) !== pin) {
         return { error: '비밀번호가 일치하지 않습니다.' };
       }
-      demoState.pins[studentNumber] = pin;
       return { ok: true, student };
     }
 
@@ -175,6 +171,9 @@ export function handleDemoApi(action, params) {
       const studentNumber = formatStudentNumber(params.studentNumber);
       const studentName = String(params.studentName || '').trim();
       const pin = formatPin(params.pin);
+      if (demoState.pins[studentNumber]) {
+        return { error: '이미 초기 비밀번호가 설정된 학생입니다. 로그인 화면에서 로그인해주세요. (비밀번호 분실 시 선생님께 초기화를 요청하세요)' };
+      }
       let student = DEMO_STUDENTS.find(s => formatStudentNumber(s.studentNumber) === studentNumber);
       if (!student) {
         student = {

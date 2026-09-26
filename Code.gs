@@ -345,25 +345,13 @@ function loginStudent_(params) {
   const students = getStudentsList_();
   let student = students.find(s => formatStudentNumber_(s.studentNumber) === studentNumber);
   if (!student) throw new Error('등록되지 않은 학생입니다. [처음이에요] 버튼을 눌러 먼저 초기 비밀번호를 설정해주세요.');
-  if (student.pinHash && formatPin_(student.pinHash) !== pin) {
-    throw new Error('비밀번호가 일치하지 않습니다.');
+  
+  if (!student.pinHash || String(student.pinHash).trim() === '') {
+    throw new Error('초기 비밀번호가 설정되지 않은 학생입니다. [처음이에요] 버튼을 눌러 초기 비밀번호를 먼저 설정해주세요.');
   }
-
-  // 시트에 아직 PIN이 없는 학생인 경우 첫 입력 PIN을 자동 영구 등록
-  if (!student.pinHash && pin) {
-    const lock = LockService.getScriptLock();
-    lock.waitLock(5000);
-    try {
-      const sheet = getSheet_(SHEETS.STUDENTS);
-      const data = sheet.getDataRange().getValues();
-      const idx = data.findIndex((r, i) => i > 0 && formatStudentNumber_(r[1]) === studentNumber);
-      if (idx > 0) {
-        // 작은따옴표를 붙여 구글 시트에서 0000이 0으로 축소되는 현상 원천 방지
-        sheet.getRange(idx + 1, 5).setValue("'" + pin);
-      }
-    } finally {
-      lock.releaseLock();
-    }
+  
+  if (formatPin_(student.pinHash) !== pin) {
+    throw new Error('비밀번호가 일치하지 않습니다.');
   }
 
   return {
@@ -404,6 +392,10 @@ function setupPin_(params) {
       const existingName = String(data[idx][2]).trim();
       if (existingName && existingName !== studentName) {
         throw new Error('시트에 등록된 이름(' + existingName + ')과 일치하지 않습니다.');
+      }
+      const existingPin = data[idx][4];
+      if (existingPin && String(existingPin).trim() !== '') {
+        throw new Error('이미 초기 비밀번호가 설정된 학생입니다. 로그인 화면에서 로그인해주세요. (비밀번호 분실 시 선생님께 초기화를 요청하세요)');
       }
       if (!existingName) {
         sheet.getRange(idx + 1, 3).setValue(studentName);

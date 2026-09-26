@@ -171,7 +171,23 @@ async function handleLogin() {
       notify();
     }
   } catch (err) {
-    showToast(err.message || '로그인에 실패했습니다.', 'error');
+    const msg = err.message || '로그인에 실패했습니다.';
+    showToast(msg, 'error');
+    if (msg.includes('초기 비밀번호') || msg.includes('처음이에요')) {
+      const loginStep = document.getElementById('loginStep');
+      const setupStep = document.getElementById('setupStep');
+      const setupStudentNumber = document.getElementById('setupStudentNumber');
+      const divider = document.querySelector('.login-divider');
+      const setupBtnContainer = document.querySelector('#setupBtn')?.parentElement;
+      if (loginStep && setupStep) {
+        loginStep.classList.add('hidden');
+        if (divider) divider.classList.add('hidden');
+        if (setupBtnContainer) setupBtnContainer.classList.add('hidden');
+        setupStep.classList.remove('hidden');
+        if (setupStudentNumber) setupStudentNumber.value = studentNumber;
+        document.getElementById('setupStudentName')?.focus();
+      }
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = '로그인';
