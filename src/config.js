@@ -34,5 +34,5 @@ export const IMAGE_QUALITY = 0.7;
 /** 학번 자리수 */
 export const STUDENT_NUMBER_DIGITS = 4;
 
-/** 앱 버전 */
-export const APP_VERSION = '1.2.0';
+/** 앱 버전 (Version Bump Rule: 패치/수정 시 0.1씩 증가, 메이저 개편 시 1.0 증가) */
+export const APP_VERSION = '6.1';

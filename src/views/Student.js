@@ -305,21 +305,22 @@ function updateHUD() {
     hudPair.className = 'hud-value';
   }
 
-  // 2. MISSION STATUS
+  // 2. MISSION STATUS (과목별 독립 줄바꿈 표기)
   if (activePairs.length > 0) {
     const totalMissionsPerSub = (state.missions && state.missions.length) || 3;
-    const missionTexts = activePairs.map(p => {
+    const missionItems = activePairs.map(p => {
       const subject = state.subjects.find(s => s.subjectId === p.subjectId);
       const subName = subject ? subject.subjectName : p.subjectId;
       const submissions = state.missionSubmissions[p.pairId] || [];
-      return `[${subName}] ${submissions.length}/${totalMissionsPerSub}`;
+      return `<div style="line-height:1.25; margin:2px 0; white-space:nowrap;">[${subName}] ${submissions.length}/${totalMissionsPerSub}</div>`;
     });
-    hudMission.textContent = missionTexts.join('   ');
+    hudMission.innerHTML = missionItems.join('');
     hudMission.className = 'hud-value highlight-gold';
-    hudMission.style.fontSize = activePairs.length > 1 ? '14px' : '18px'; // 길이가 길어지면 폰트 조정
+    hudMission.style.fontSize = activePairs.length > 1 ? '13px' : '17px';
   } else {
     hudMission.textContent = '0 / 3 COMPLETE';
     hudMission.className = 'hud-value';
+    hudMission.style.fontSize = '';
   }
 
   // 3. RESULT STATUS
@@ -357,14 +358,19 @@ function updateReceivedRequests() {
     const fromStudent = state.students.find(s => s.studentId === req.fromId);
     const subject = state.subjects.find(s => s.subjectId === req.subjectId);
 
-    // 수락 불가 예외 조건 확인
+    // 수락 불가 예외 조건 확인 (본인 및 상대방 페어 수/과목 실시간 검증)
+    const fromStudentIsFull = (fromStudent?.pairCount || 0) >= 2;
+    const fromStudentHasSameSubject = (fromStudent?.matchedSubjects || []).includes(req.subjectId);
     const hasSameSubject = myActiveSubjects.has(req.subjectId);
     const hasSamePartner = myPartnerIds.has(req.fromId);
-    const canAccept = !isFull && !hasSameSubject && !hasSamePartner;
+
+    const canAccept = !isFull && !hasSameSubject && !hasSamePartner && !fromStudentIsFull && !fromStudentHasSameSubject;
 
     let blockedReason = '';
-    if (isFull) blockedReason = '⚠️ 최대 페어(2개)를 모두 완료함';
-    else if (hasSameSubject) blockedReason = `⚠️ 이미 [${subject?.subjectName || req.subjectId}] 과목 페어가 있음`;
+    if (isFull) blockedReason = '⚠️ 나의 최대 페어(2개)를 모두 완료함';
+    else if (fromStudentIsFull) blockedReason = `⚠️ 신청 학생(${fromStudent?.studentName})이 이미 최대 페어(2개)를 완료함`;
+    else if (hasSameSubject) blockedReason = `⚠️ 내가 이미 [${subject?.subjectName || req.subjectId}] 과목 페어가 있음`;
+    else if (fromStudentHasSameSubject) blockedReason = `⚠️ 신청 학생이 이미 [${subject?.subjectName || req.subjectId}] 과목 페어가 있음`;
     else if (hasSamePartner) blockedReason = `⚠️ 이미 [${fromStudent?.studentName || req.fromId}] 친구와 페어가 있음`;
 
     const card = el('div', { className: 'incoming-event-card' });
@@ -581,41 +587,37 @@ function updateNewRequestForm() {
 
   // 친구 옵션 갱신 (소외 방지: 아직 짝이 없는 친구 우선 표시 & 2개 완료된 친구 / 이미 나와 짝인 친구 비활성화)
   const otherStudents = state.students.filter(s => s.studentId !== state.student?.studentId);
-
-  // 친구별 활성 페어 수 집계
-  const friendPairCount = {};
-  otherStudents.forEach(s => { friendPairCount[s.studentId] = 0; });
-  state.myPairs.forEach(p => {
-    if (p.status === 'ACTIVE') {
-      if (friendPairCount[p.studentA] !== undefined) friendPairCount[p.studentA]++;
-      if (friendPairCount[p.studentB] !== undefined) friendPairCount[p.studentB]++;
-    }
-  });
+  const selectedSubId = subjectSelect.value;
+  const selectedSubObj = state.subjects.find(s => s.subjectId === selectedSubId);
+  const selectedSubName = selectedSubObj ? selectedSubObj.subjectName : '';
 
   // 이미 나와 성사된 페어 대상자 ID 목록
   const myPartnerIds = myActivePairs.map(p => (p.studentA === state.student?.studentId ? p.studentB : p.studentA));
 
   // 소외 방지 정렬: 짝이 0개인 친구 최상단 -> 1개인 친구 -> 2개 완료 친구 순
   const sortedStudents = [...otherStudents].sort((a, b) => {
-    const countA = friendPairCount[a.studentId] || 0;
-    const countB = friendPairCount[b.studentId] || 0;
+    const countA = a.pairCount !== undefined ? a.pairCount : 0;
+    const countB = b.pairCount !== undefined ? b.pairCount : 0;
     if (countA !== countB) return countA - countB;
     return String(a.studentNumber).localeCompare(String(b.studentNumber));
   });
 
-  const currentFriendOpts = Array.from(friendSelect.options).map(o => o.value + ':' + o.disabled).join('|');
+  const currentFriendOpts = Array.from(friendSelect.options).map(o => o.value + ':' + o.disabled + ':' + o.textContent).join('|');
   const newFriendOpts = [''].concat(sortedStudents.map(s => {
-    const isFull = (friendPairCount[s.studentId] || 0) >= 2;
+    const pairCount = s.pairCount !== undefined ? s.pairCount : 0;
+    const isFull = pairCount >= 2;
     const alreadyWithMe = myPartnerIds.includes(s.studentId);
-    return s.studentId + ':' + (isFull || alreadyWithMe);
+    const hasSameSubject = selectedSubId && (s.matchedSubjects || []).includes(selectedSubId);
+    return s.studentId + ':' + (isFull || alreadyWithMe || hasSameSubject) + ':' + pairCount;
   })).join('|');
 
   if (currentFriendOpts !== newFriendOpts || friendSelect.options.length === 0) {
     friendSelect.innerHTML = `<option value="">${TEXTS.student.step3.friendSelectDefault}</option>`;
     sortedStudents.forEach(s => {
-      const pairCount = friendPairCount[s.studentId] || 0;
+      const pairCount = s.pairCount !== undefined ? s.pairCount : 0;
       const isFull = pairCount >= 2;
       const alreadyWithMe = myPartnerIds.includes(s.studentId);
+      const hasSameSubject = selectedSubId && (s.matchedSubjects || []).includes(selectedSubId);
 
       const opt = document.createElement('option');
       opt.value = s.studentId;
@@ -623,13 +625,20 @@ function updateNewRequestForm() {
         opt.textContent = `${s.studentNumber} ${s.studentName} (이미 나의 짝꿍 - 중복 불가)`;
         opt.disabled = true;
       } else if (isFull) {
-        opt.textContent = `${s.studentNumber} ${s.studentName} (매칭 완료 2/2)`;
+        opt.textContent = `${s.studentNumber} ${s.studentName} [매칭 완료/마감]`;
+        opt.disabled = true;
+      } else if (hasSameSubject) {
+        opt.textContent = `${s.studentNumber} ${s.studentName} (${selectedSubName} 이미 완료)`;
         opt.disabled = true;
       } else if (pairCount === 0) {
         opt.textContent = `✨ ${s.studentNumber} ${s.studentName} (짝꿍 찾는 중)`;
         opt.disabled = false;
       } else {
-        opt.textContent = `${s.studentNumber} ${s.studentName} (1개 가능)`;
+        const doneSub = (s.matchedSubjects && s.matchedSubjects[0])
+          ? (state.subjects.find(sub => sub.subjectId === s.matchedSubjects[0])?.subjectName || '')
+          : '';
+        const subHint = doneSub ? ` (${doneSub} 완료, 1개 가능)` : ' (1개 가능)';
+        opt.textContent = `${s.studentNumber} ${s.studentName}${subHint}`;
         opt.disabled = false;
       }
       friendSelect.appendChild(opt);
@@ -657,7 +666,10 @@ function updateNewRequestForm() {
     if (previewTarget) previewTarget.textContent = targetSelect.value || '180';
   };
 
-  subjectSelect.onchange = syncPreview;
+  subjectSelect.onchange = () => {
+    syncPreview();
+    updateNewRequestForm(); // 과목 변경 시 친구 비활성화 상태 즉각 갱신
+  };
   friendSelect.onchange = syncPreview;
   targetSelect.onchange = syncPreview;
   syncPreview();

@@ -1457,17 +1457,36 @@ function getDashboardStats_() {
 
 function getStudentHome_(params) {
   const studentId = params.studentId;
-  const students = getStudentsList_().map(s => ({
-    studentId: s.studentId,
-    studentNumber: s.studentNumber,
-    studentName: s.studentName,
-    classId: s.classId,
-  }));
+  const allActivePairs = getPairsList_().filter(p => p.status === 'ACTIVE');
+  
+  // 각 학생별 성사된 페어 수 및 과목 집계
+  const studentPairMap = {};
+  allActivePairs.forEach(p => {
+    if (!studentPairMap[p.studentA]) studentPairMap[p.studentA] = { count: 0, subjects: [] };
+    if (!studentPairMap[p.studentB]) studentPairMap[p.studentB] = { count: 0, subjects: [] };
+    studentPairMap[p.studentA].count++;
+    studentPairMap[p.studentA].subjects.push(p.subjectId);
+    studentPairMap[p.studentB].count++;
+    studentPairMap[p.studentB].subjects.push(p.subjectId);
+  });
+
+  const students = getStudentsList_().map(s => {
+    const pairInfo = studentPairMap[s.studentId] || { count: 0, subjects: [] };
+    return {
+      studentId: s.studentId,
+      studentNumber: s.studentNumber,
+      studentName: s.studentName,
+      classId: s.classId,
+      pairCount: pairInfo.count,
+      matchedSubjects: pairInfo.subjects
+    };
+  });
+
   const subjects = getSubjectsList_();
   const appStatus = getApplicationStatus_();
   const missions = getMissionsList_();
   const requests = getRequestsList_();
-  const pairs = getPairsList_().filter(p => (p.studentA === studentId || p.studentB === studentId) && p.status === 'ACTIVE');
+  const pairs = allActivePairs.filter(p => p.studentA === studentId || p.studentB === studentId);
   const receivedRequests = requests.filter(r => r.toId === studentId && r.status === 'PENDING');
   const sentRequests = requests.filter(r => r.fromId === studentId && r.status === 'PENDING');
 

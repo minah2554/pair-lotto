@@ -235,6 +235,27 @@ export function handleDemoApi(action, params) {
         submissions[p.pairId] = demoState.missionSubmissions.filter(s => s.pairId === p.pairId && s.status === 'APPROVED');
       });
       const results = demoState.results.filter(r => r.studentA === studentId || r.studentB === studentId);
+
+      const allActivePairs = demoState.pairs.filter(p => p.status === 'ACTIVE');
+      const studentPairMap = {};
+      allActivePairs.forEach(p => {
+        if (!studentPairMap[p.studentA]) studentPairMap[p.studentA] = { count: 0, subjects: [] };
+        if (!studentPairMap[p.studentB]) studentPairMap[p.studentB] = { count: 0, subjects: [] };
+        studentPairMap[p.studentA].count++;
+        studentPairMap[p.studentA].subjects.push(p.subjectId);
+        studentPairMap[p.studentB].count++;
+        studentPairMap[p.studentB].subjects.push(p.subjectId);
+      });
+
+      const students = DEMO_STUDENTS.map(s => {
+        const pairInfo = studentPairMap[s.studentId] || { count: 0, subjects: [] };
+        return {
+          ...s,
+          pairCount: pairInfo.count,
+          matchedSubjects: pairInfo.subjects
+        };
+      });
+
       return {
         ok: true,
         receivedRequests: received,
@@ -244,7 +265,7 @@ export function handleDemoApi(action, params) {
         results,
         applicationStatus: demoState.applicationStatus,
         subjects: DEMO_SUBJECTS,
-        students: DEMO_STUDENTS,
+        students,
         missions: DEMO_MISSIONS,
       };
     }

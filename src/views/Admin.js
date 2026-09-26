@@ -237,12 +237,13 @@ function renderStudentsTab(content) {
           </thead>
           <tbody>
             ${state.students.map(s => {
-              const pairCount = (state.myPairs || []).filter(p => (p.studentA === s.studentId || p.studentB === s.studentId) && p.status === 'ACTIVE').length;
+              const allPairs = state.pairs || state.myPairs || [];
+              const pairCount = s.pairCount !== undefined ? s.pairCount : allPairs.filter(p => (p.studentA === s.studentId || p.studentB === s.studentId) && p.status === 'ACTIVE').length;
               return `
                 <tr>
                   <td><b>${s.studentNumber}</b></td>
                   <td>${s.studentName}</td>
-                  <td><span class="badge ${pairCount > 0 ? 'badge-open' : 'badge-neutral'}">${pairCount}/2 완료</span></td>
+                  <td><span class="badge ${pairCount >= 2 ? 'badge-open' : pairCount === 1 ? 'badge-warning' : 'badge-neutral'}">${pairCount}/2 ${pairCount >= 2 ? '완료' : '진행 중'}</span></td>
                   <td>
                     <button class="btn btn-ghost btn-mini reset-pin-btn" data-id="${s.studentId}" data-num="${s.studentNumber}" data-name="${s.studentName}">
                       ${TEXTS.admin.students.resetPinBtn}

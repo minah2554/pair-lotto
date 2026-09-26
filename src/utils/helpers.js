@@ -1,7 +1,7 @@
 /**
  * PAIR LOTTO 유틸리티 함수
  */
-import { MAX_IMAGE_SIZE, IMAGE_QUALITY } from '../config.js';
+import { MAX_IMAGE_SIZE, IMAGE_QUALITY, APP_VERSION } from '../config.js';
 
 /** 날짜를 한국어 형식으로 표시 */
 export function formatDate(dateStr) {
@@ -306,7 +306,7 @@ export function getFooterHTML() {
           <span class="f-tag">Classroom Tools for Teachers · PAIR LOTTO</span>
         </div>
         <div class="f-legal">
-          <span>© 2026 MINARI STUDIO. All rights reserved.&nbsp;|&nbsp;PAIR LOTTO Web App v6.0</span>
+          <span>© 2026 MINARI STUDIO. All rights reserved.&nbsp;|&nbsp;PAIR LOTTO Web App v${APP_VERSION}</span>
         </div>
       </div>
     </footer>
