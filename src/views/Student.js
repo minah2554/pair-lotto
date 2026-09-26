@@ -63,64 +63,64 @@ function buildStudentHTML() {
       </div>
     </header>
 
-    <!-- 아케이드 HUD 요약 바 (게임 상태 헤드업 디스플레이) -->
+    <!-- 아케이드 HUD 요약 바 (게임 상태 헤드업 디스플레이) - 영문 전용 -->
     <div class="arcade-hud">
       <div class="hud-item hud-pair">
-        <div class="hud-label">PAIR STATUS · 페어 상태</div>
+        <div class="hud-label">PAIR STATUS</div>
         <div class="hud-value highlight-cyan" id="hudPairStatus">확인 중</div>
       </div>
       <div class="hud-item hud-mission">
-        <div class="hud-label">MISSION STATUS · 미션 현황</div>
+        <div class="hud-label">MISSION STATUS</div>
         <div class="hud-value highlight-gold" id="hudMissionStatus">- / 3 COMPLETE</div>
       </div>
       <div class="hud-item hud-result">
-        <div class="hud-label">RESULT STATUS · 결과 발표</div>
+        <div class="hud-label">RESULT STATUS</div>
         <div class="hud-value highlight-green" id="hudResultStatus">대기 중</div>
       </div>
     </div>
 
-    <!-- 받은 PAIR 신청 (INCOMING EVENT) -->
+    <!-- 도착한 페어 신청 -->
     <section class="card" id="receivedRequestsSection">
       <div class="card-head">
-        <h3>⚡ INCOMING PAIR REQUESTS · 도착한 페어 신청</h3>
+        <h3>도착한 페어 신청</h3>
         <span class="badge badge-warning" id="requestCount">0</span>
       </div>
       <div id="receivedRequestsList">
         <div class="empty-state">
-          <p>도착한 매칭 신청이 없습니다.</p>
+          <p style="text-align:center; word-break:keep-all;">도착한 짝꿍 신청이 없습니다.</p>
         </div>
       </div>
     </section>
 
-    <!-- 디지털 LOTTO 티켓 (나의 응모권) -->
+    <!-- 나의 PAIR LOTTO 응모권 -->
     <section class="card">
       <div class="card-head">
-        <h3>🎟️ MY LOTTO TICKETS · 나의 응모권</h3>
-        <span class="badge badge-neutral">1인당 최대 2개 페어 가능</span>
+        <h3>나의 PAIR LOTTO 응모권</h3>
+        <span class="badge badge-neutral">최대 2개 페어 가능</span>
       </div>
       <div id="myTickets">
         <div class="loading-spinner"><div class="spinner"></div><p>로딩 중...</p></div>
       </div>
     </section>
 
-    <!-- 새 PAIR 매칭 챌린지 (SELECT YOUR PAIR) -->
+    <!-- 나의 짝꿍 선택하기 -->
     <section class="card" id="newRequestSection">
       <div class="card-head">
-        <h3>🎯 SELECT YOUR PAIR · 짝꿍 신청하기</h3>
+        <h3>나의 짝꿍 선택하기</h3>
         <span class="badge" id="applyStatusBadge">확인 중</span>
       </div>
       <div class="form-grid">
         <div class="form-grid form-grid-cols">
           <div class="form-group">
-            <label class="form-label">CHALLENGE 과목 · 과목 선택</label>
+            <label class="form-label">도전할 과목</label>
             <select id="subjectSelect" class="form-select"></select>
           </div>
           <div class="form-group">
-            <label class="form-label">PAIR PARTNER · 친구 선택</label>
+            <label class="form-label">함께할 짝꿍</label>
             <select id="friendSelect" class="form-select"></select>
           </div>
           <div class="form-group">
-            <label class="form-label">CHALLENGE TARGET · 목표 점수</label>
+            <label class="form-label">목표 합산점수</label>
             <select id="targetSelect" class="form-select">
               ${TARGET_OPTIONS.map(t => `<option value="${t}"${t === 180 ? ' selected' : ''}>${t}점</option>`).join('')}
             </select>
@@ -129,16 +129,16 @@ function buildStudentHTML() {
 
         <!-- 실시간 매칭 프리뷰 카드 -->
         <div class="match-preview-card">
-          <div class="match-preview-tag">MATCH PREVIEW · 매칭 미리보기</div>
+          <div class="match-preview-tag" style="text-align:center;">매칭 미리보기</div>
           <div class="match-vs-box">
             <div class="player-box me">
-              <div class="role">PLAYER 1</div>
+              <div class="role">나</div>
               <div class="pname">${displayName}</div>
             </div>
             <div class="match-vs-sign">×</div>
             <div class="player-box friend">
-              <div class="role">PLAYER 2</div>
-              <div class="pname" id="previewFriendName">파트너를 선택하세요</div>
+              <div class="role">짝꿍</div>
+              <div class="pname" id="previewFriendName">친구를 선택하세요</div>
             </div>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
@@ -148,36 +148,36 @@ function buildStudentHTML() {
         </div>
 
         <div>
-          <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">🚀 SEND PAIR REQUEST · 신청 보내기</button>
+          <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">페어 신청 보내기</button>
         </div>
       </div>
-      <p class="help" id="newRequestHelp">신청 변경 기간 동안에는 자유롭게 신청 취소 및 페어 변경이 가능합니다.</p>
+      <p class="help" id="newRequestHelp" style="text-align:center; word-break:keep-all;">신청 기간에는 언제든지 짝꿍을 바꾸거나 취소할 수 있어요.</p>
     </section>
 
-    <!-- PAIR MISSION (QUEST BOARD) -->
+    <!-- 페어 미션 퀘스트 -->
     <section class="card" id="missionSection">
       <div class="card-head">
-        <h3>⭐ QUEST BOARD · 페어 미션 퀘스트</h3>
+        <h3>페어 미션 퀘스트</h3>
         <span class="badge badge-neutral" id="missionBadge">-</span>
       </div>
       <div id="missionContent">
         <div class="empty-state">
           <div class="icon">🤝</div>
-          <p>PAIR가 성사되면 미션을 수행하고 당첨 범위를 넓혀보세요!</p>
+          <p style="text-align:center; word-break:keep-all;">짝꿍과 미션을 함께 완료하면 당첨 범위가 넓어져요!</p>
         </div>
       </div>
     </section>
 
-    <!-- 시험 결과 확인 (LOTTO REVEAL) -->
+    <!-- PAIR LOTTO 결과 확인 -->
     <section class="card" id="resultSection">
       <div class="card-head">
-        <h3>🏁 LOTTO REVEAL · 시험 결과</h3>
+        <h3>PAIR LOTTO 결과 확인</h3>
         <span class="badge badge-neutral">결과 대기</span>
       </div>
       <div id="resultContent">
         <div class="empty-state">
           <div class="icon">🎯</div>
-          <p>시험이 끝나고 선생님이 점수를 업로드하면 결과를 확인할 수 있어요.</p>
+          <p style="text-align:center; word-break:keep-all;">선생님이 시험 점수를 입력하면 당첨 결과를 확인할 수 있어요!</p>
         </div>
       </div>
     </section>
@@ -210,7 +210,7 @@ async function loadStudentData() {
     updateStudentUI();
   } catch (err) {
     console.error('학생 데이터 로드 실패:', err);
-    showToast('데이터를 불러오지 못했습니다. 새로고침해주세요.', 'error');
+    showToast('일시적인 연결 오류입니다. 새로고침해주세요.', 'error');
   }
 }
 
@@ -254,8 +254,11 @@ function updateHUD() {
   }
 
   // 2. MISSION STATUS
-  const activePairSubmissions = activePair ? (state.missionSubmissions[activePair.pairId] || []) : [];
-  const completedCount = activePairSubmissions.length;
+  let completedCount = 0;
+  if (activePairs.length > 0) {
+    const submissions = state.missionSubmissions[activePairs[0].pairId] || [];
+    completedCount = submissions.length;
+  }
   const totalMissions = (state.missions && state.missions.length) || 3;
   const stars = '★'.repeat(completedCount) + '☆'.repeat(Math.max(0, totalMissions - completedCount));
   hudMission.textContent = `${stars} (${completedCount}/${totalMissions})`;
@@ -364,28 +367,28 @@ function updateMyTickets() {
 
             <!-- TARGET 슬롯머신 점수판 (가장 크게 강조) -->
             <div class="arcade-target-banner">
-              <div class="arcade-target-label">CHALLENGE TARGET · 목표 점수</div>
+              <div class="arcade-target-label">목표 합산점수</div>
               <div class="arcade-target-number">${pair.target}</div>
-              <div class="arcade-buff-badge">🔥 BONUS ACTIVE (±${totalRange}점)</div>
+              <div class="arcade-buff-badge">🔥 당첨범위 ±${totalRange}점</div>
             </div>
 
-            <div class="range" style="color:var(--text-secondary); font-size:13px; margin-top:8px;">
-              기본 당첨범위 ±${BASE_RANGE}점 + 미션 보너스 +${bonusRange}점 → 최종 <b>±${totalRange}점</b>
+            <div class="range" style="color:var(--text-secondary); font-size:12.5px; margin-top:8px; text-align:center; word-break:keep-all;">
+              기본 ±${BASE_RANGE}점 + 미션보너스 +${bonusRange}점 → 최종 당첨범위 <b>±${totalRange}점</b>
             </div>
           </div>
 
           <div class="ticket-foot" style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <div style="font-size:13px; color:var(--text-secondary);">
-              MISSION: <span style="color:var(--gold); font-weight:800;">${stars} (${missionCount}/3)</span>
+              미션 달성: <span style="color:var(--gold); font-weight:800;">${stars} (${missionCount}/3)</span>
             </div>
             ${canModify
-              ? `<button class="btn btn-danger btn-mini break-pair-btn" data-id="${pair.pairId}" title="신청 변경 기간 동안 페어를 해제할 수 있습니다.">💔 페어 끊기</button>`
-              : `<span class="badge badge-closed" style="font-size:11px; padding:4px 10px;">🔒 응모 마감 (수정 불가)</span>`
+              ? `<button class="btn btn-danger btn-mini break-pair-btn" data-id="${pair.pairId}" title="신청 기간 동안 페어를 변경할 수 있습니다.">💔 페어 끊기</button>`
+              : `<span class="badge badge-closed" style="font-size:11px; padding:4px 10px;">🔒 마감됨</span>`
             }
           </div>
           ${canModify
-            ? `<div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:right;">* 신청 변경 기간 동안에는 자유롭게 페어를 끊고 새로운 친구와 변경할 수 있습니다.</div>`
-            : `<div style="font-size:11px; color:var(--danger); margin-top:8px; text-align:right;">* 응모가 마감되어 더 이상 페어를 수정할 수 없습니다.</div>`
+            ? `<div style="font-size:11px; color:var(--muted); margin-top:8px; text-align:center; word-break:keep-all;">* 신청 기간 중에는 언제든 짝꿍을 변경할 수 있어요.</div>`
+            : `<div style="font-size:11px; color:var(--danger); margin-top:8px; text-align:center; word-break:keep-all;">* 마감되어 더 이상 변경할 수 없습니다.</div>`
           }
         </div>
       `;
@@ -403,13 +406,13 @@ function updateMyTickets() {
               ${state.student.studentName} <span style="color:var(--warning);">×</span> ${toStudent?.studentName || sentReq.toId}
             </div>
             <div class="arcade-target-banner" style="padding:12px; margin:12px 0;">
-              <div class="arcade-target-label">REQUESTED TARGET · 요청된 목표 점수</div>
+              <div class="arcade-target-label">신청한 목표점수</div>
               <div class="arcade-target-number" style="font-size:36px; opacity:0.85;">${sentReq.target}</div>
             </div>
-            <div class="range">기본 당첨범위 ±${BASE_RANGE}점</div>
+            <div class="range" style="text-align:center;">기본 당첨범위 ±${BASE_RANGE}점</div>
           </div>
           <div class="ticket-foot" style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:12px; color:var(--muted);">상대방의 수락을 기다리는 중...</span>
+            <span style="font-size:12px; color:var(--muted);">친구의 수락을 기다리는 중...</span>
             <button class="btn btn-danger btn-mini cancel-request-btn" data-id="${sentReq.requestId}">신청 취소</button>
           </div>
         </div>
@@ -422,9 +425,9 @@ function updateMyTickets() {
             <span class="badge" style="background:rgba(255,255,255,0.05); color:var(--muted); font-size:12px;">[ ${subject.subjectName} ]</span>
             <span class="badge badge-neutral" style="font-size:11px;">미응모</span>
           </div>
-          <div class="ticket-main" style="padding:16px 0;">
-            <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">아직 매칭되지 않았습니다.</div>
-            <div style="font-size:12px; color:var(--muted);">아래 [🎯 SELECT YOUR PAIR · 짝꿍 신청하기]에서 친구를 찾아보세요!</div>
+          <div class="ticket-main" style="padding:16px 0; text-align:center;">
+            <div style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">아직 매칭된 짝꿍이 없어요.</div>
+            <div style="font-size:12px; color:var(--muted); word-break:keep-all;">아래 [나의 짝꿍 선택하기]에서 친구에게 신청해보세요!</div>
           </div>
         </div>
       `;
@@ -500,29 +503,29 @@ function updateNewRequestForm() {
   const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
 
   if (!globalOpen) {
-    badge.textContent = 'APPLICATION CLOSED';
+    badge.textContent = '신청 마감';
     badge.className = 'badge badge-closed closed';
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.45';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--danger); font-weight:700;">🔒 응모가 마감되어 새로운 신청이나 수정을 할 수 없습니다.</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--danger); font-weight:700; text-align:center; display:block; word-break:keep-all;">🔒 신청 기간이 마감되어 새로운 신청을 할 수 없습니다.</span>';
   } else if (activePairsCount >= 2) {
-    badge.textContent = '페어 정원 완료 (2/2)';
+    badge.textContent = '페어 완료 (2/2)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.55';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--warning); font-weight:700;">⚠️ 이미 최대 페어(2개)가 모두 완료되었습니다. 다른 친구와 페어하려면 위 티켓에서 [💔 페어 끊기]를 먼저 진행해주세요.</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--warning); font-weight:700; text-align:center; display:block; word-break:keep-all;">⚠️ 짝꿍 2명을 모두 선택했어요. 바꾸려면 위 티켓에서 [페어 끊기]를 먼저 해주세요.</span>';
   } else if (activePairsCount === 1) {
-    badge.textContent = '1개 페어 완료 (추가 1개 가능)';
+    badge.textContent = '1개 완료 (1개 추가 가능)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700;">✨ 현재 1개 페어가 성사되었습니다. 홀수 인원 대비 추가로 1명 더 페어 신청이 가능합니다!</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700; text-align:center; display:block; word-break:keep-all;">✨ 1개의 페어가 완료되었어요. 추가로 1명 더 짝꿍을 맺을 수 있어요!</span>';
   } else {
-    badge.textContent = 'APPLICATION OPEN (최대 2페어)';
+    badge.textContent = '신청 가능 (최대 2개)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.textContent = '1인당 최대 2개 페어까지 신청/수락 가능합니다. (홀수 인원 시 2개 페어 참여 가능)';
+    if (helpText) helpText.innerHTML = '<span style="text-align:center; display:block; word-break:keep-all;">최대 2개 과목까지 친구와 짝꿍을 맺을 수 있어요.</span>';
   }
 }
 
@@ -535,12 +538,12 @@ function updateMissionSection() {
   // 성사된 PAIR가 있는지 확인
   const activePairs = state.myPairs.filter(p => p.status === 'ACTIVE');
   if (activePairs.length === 0) {
-    missionBadge.textContent = 'LOCKED';
+    missionBadge.textContent = '미션 대기';
     missionBadge.className = 'badge badge-neutral';
     missionContent.innerHTML = `
       <div class="empty-state">
         <div class="icon">🔒</div>
-        <p>PAIR 매칭이 완료되면 퀘스트가 해금됩니다!</p>
+        <p style="text-align:center; word-break:keep-all;">짝꿍과 매칭되면 미션 퀘스트가 열려요!</p>
       </div>
     `;
     return;
@@ -556,7 +559,7 @@ function updateMissionSection() {
     html += `
       <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
         <span class="badge" style="background:rgba(0,240,255,0.15); color:var(--neon-cyan); font-weight:800; border:1px solid rgba(0,240,255,0.3);">
-          [ 🧪 ${subject?.subjectName || pair.subjectId} QUEST ]
+          [ 🧪 ${subject?.subjectName || pair.subjectId} 미션 ]
         </span>
       </div>
     `;
@@ -569,16 +572,16 @@ function updateMissionSection() {
           <div style="flex:1;">
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
               <span class="badge ${isDone ? 'badge-open' : 'badge-neutral'}" style="font-size:11px; padding:3px 8px;">
-                ${isDone ? 'COMPLETED ★★★' : 'READY'}
+                ${isDone ? '완료 ★' : '도전 가능'}
               </span>
               <strong class="quest-title">${mission.title}</strong>
             </div>
-            <p class="quest-desc">${mission.description}</p>
+            <p class="quest-desc" style="word-break:keep-all;">${mission.description}</p>
           </div>
           <div style="flex-shrink:0;">
             ${isDone
               ? '<span class="badge badge-open" style="padding:8px 14px; font-weight:800; font-size:13px; box-shadow:0 0 10px rgba(0,255,136,0.3);">✅ 완료</span>'
-              : `<label class="btn-arcade-upload">📷 PHOTO VERIFY<input type="file" accept="image/*" class="mission-upload-input" data-pair="${pair.pairId}" data-subject="${pair.subjectId}" data-mission="${mission.missionId}" hidden /></label>`
+              : `<label class="btn-arcade-upload">📷 사진 인증하기<input type="file" accept="image/*" class="mission-upload-input" data-pair="${pair.pairId}" data-subject="${pair.subjectId}" data-mission="${mission.missionId}" hidden /></label>`
             }
           </div>
         </article>
@@ -591,10 +594,10 @@ function updateMissionSection() {
     const bonusRange = totalCompleted * BONUS_PER_MISSION;
     const totalRange = BASE_RANGE + bonusRange;
     html += `
-      <div class="arcade-target-banner mt-2" style="background:rgba(255,209,102,0.06); border:1px solid rgba(255,209,102,0.3); padding:16px;">
-        <div style="font-size:11px; color:var(--gold); font-weight:800; letter-spacing:0.12em; text-transform:uppercase;">🔥 BUFF PROGRESS & BONUS RANGE</div>
-        <div style="font-size:15px; color:var(--text); margin-top:6px;">
-          BASE RANGE <b>±${BASE_RANGE}</b> + MISSION BONUS <b style="color:var(--gold);">+${bonusRange}</b> → FINAL RANGE <b style="color:var(--neon-cyan); font-family:'BcCardFont'; font-size:22px;">±${totalRange}점</b>
+      <div class="arcade-target-banner mt-2" style="background:rgba(255,209,102,0.06); border:1px solid rgba(255,209,102,0.3); padding:14px; text-align:center;">
+        <div style="font-size:11px; color:var(--gold); font-weight:800; letter-spacing:0.08em; text-transform:uppercase;">🔥 미션 보너스 당첨 범위</div>
+        <div style="font-size:14px; color:var(--text); margin-top:6px; word-break:keep-all;">
+          기본 ±${BASE_RANGE}점 + 미션보너스 <b style="color:var(--gold);">+${bonusRange}점</b> → 최종 <b style="color:var(--neon-cyan); font-family:'BcCardFont'; font-size:20px;">±${totalRange}점</b>
         </div>
       </div>
     `;
@@ -602,7 +605,7 @@ function updateMissionSection() {
 
   const totalMissions = state.missions.length;
   const totalDone = Object.values(state.missionSubmissions).flat().length;
-  missionBadge.textContent = `${Math.min(totalDone, totalMissions)} / ${totalMissions} COMPLETED`;
+  missionBadge.textContent = `${Math.min(totalDone, totalMissions)} / ${totalMissions} 완료`;
   missionBadge.className = 'badge badge-open';
   missionContent.innerHTML = html;
 
@@ -648,9 +651,9 @@ function updateResultSection() {
 
       <div class="result-card ${resultClass}" id="resultBox-${idx}">
         <div class="result-unrevealed" id="unrevealed-${idx}">
-          <p style="color:var(--text-secondary); margin-bottom:14px; font-size:14px;">결과 발표가 준비되었습니다!</p>
+          <p style="color:var(--text-secondary); margin-bottom:14px; font-size:14px; text-align:center;">결과 발표가 준비되었습니다!</p>
           <button class="btn btn-gold btn-lg reveal-btn" data-idx="${idx}" style="font-weight:900; font-size:16px; padding:14px 28px; box-shadow:0 0 24px rgba(255,209,102,0.5);">
-            🎰 CHECK RESULT (결과 확인)
+            PAIR LOTTO 결과 확인
           </button>
         </div>
 
@@ -781,7 +784,7 @@ async function handleSendRequest() {
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = 'PAIR 신청 보내기';
+    btn.textContent = '페어 신청 보내기';
   }
 }
 

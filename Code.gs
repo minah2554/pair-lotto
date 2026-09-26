@@ -14,17 +14,30 @@
  *    - 액세스: 모든 사용자
  */
 
-// ==================== 시트 이름 상수 ====================
+// ==================== 시트 이름 상수 (한글 기본 + 영문 호환) ====================
 const SHEETS = {
-  SETTINGS: 'SETTINGS',
-  STUDENTS: 'STUDENTS',
-  SUBJECTS: 'SUBJECTS',
-  PAIR_REQUESTS: 'PAIR_REQUESTS',
-  PAIRS: 'PAIRS',
-  MISSIONS: 'MISSIONS',
-  MISSION_SUBMISSIONS: 'MISSION_SUBMISSIONS',
-  EXAM_RESULTS: 'EXAM_RESULTS',
-  RESULTS: 'RESULTS',
+  SETTINGS: '설정',
+  STUDENTS: '학생명단',
+  SUBJECTS: '과목목록',
+  PAIR_REQUESTS: '페어신청',
+  PAIRS: '성사된페어',
+  MISSIONS: '미션목록',
+  MISSION_SUBMISSIONS: '미션제출',
+  EXAM_RESULTS: '시험점수',
+  RESULTS: '당첨결과',
+};
+
+// 영문 및 한글 별칭 상호 매핑 (기존 영문 시트명 완벽 지원)
+const SHEET_ALIASES = {
+  '설정': ['SETTINGS', '설정값'],
+  '학생명단': ['STUDENTS', '학생', '학생목록'],
+  '과목목록': ['SUBJECTS', '과목', '과목설정'],
+  '페어신청': ['PAIR_REQUESTS', '신청내역', '페어신청내역'],
+  '성사된페어': ['PAIRS', '페어목록', '매칭페어'],
+  '미션목록': ['MISSIONS', '미션', '퀘스트'],
+  '미션제출': ['MISSION_SUBMISSIONS', '미션인증', '제출내역'],
+  '시험점수': ['EXAM_RESULTS', '시험결과', '성적'],
+  '당첨결과': ['RESULTS', '결과', '추첨결과'],
 };
 
 // ==================== 스프레드시트 및 구글 드라이브 설정 ====================
@@ -49,10 +62,27 @@ function getSs_() {
 
 function getSheet_(name) {
   const ss = getSs_();
+  // 1. 요청된 이름으로 직접 찾기
   let sheet = ss.getSheetByName(name);
-  if (!sheet) {
-    sheet = ss.insertSheet(name);
+  if (sheet) return sheet;
+
+  // 2. 별칭(영문 또는 대체 이름)으로 검색
+  const aliases = SHEET_ALIASES[name] || [];
+  for (let i = 0; i < aliases.length; i++) {
+    sheet = ss.getSheetByName(aliases[i]);
+    if (sheet) return sheet;
   }
+
+  // 3. name이 영문이었을 경우 한글 이름으로 역검색
+  for (const [korName, engAliases] of Object.entries(SHEET_ALIASES)) {
+    if (engAliases.includes(name)) {
+      sheet = ss.getSheetByName(korName);
+      if (sheet) return sheet;
+    }
+  }
+
+  // 4. 없으면 기본 이름(한글)으로 생성
+  sheet = ss.insertSheet(name);
   return sheet;
 }
 
@@ -146,6 +176,8 @@ function handleAction(action, params) {
     case 'revokeMission': return revokeMission_(params);
     case 'updateMissions': return updateMissions_(params);
     case 'updateSettings': return updateSettings_(params);
+    case 'migrateSheetsToKorean': return migrateSheetsToKorean();
+    case 'initializeSheets': initializeSheets(); return { ok: true, message: '초기화 완료' };
 
     default:
       throw new Error('알 수 없는 액션: ' + action);
@@ -264,13 +296,37 @@ function getStudentsList_() {
   const sheet = getSheet_(SHEETS.STUDENTS);
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return [];
-  return data.slice(1).filter(r => r[0] || r[1]).map(r => ({
-    studentId: String(r[0] || ('s' + formatStudentNumber_(r[1]))),
-    studentNumber: formatStudentNumber_(r[1]),
-    studentName: String(r[2] || ''),
-    classId: String(r[3] || ''),
-    pinHash: formatPin_(r[4]),
-  }));
+
+  // 헤더 분석 (한글 / 영문 컬럼 동적 자동 매핑)
+  const header = data[0].map(h => String(h || '').trim().toLowerCase());
+  let colId = header.findIndex(h => h === 'studentid' || h === '학번id' || h === '아이디');
+  let colNum = header.findIndex(h => h === 'studentnumber' || h === '학번' || h === '번호');
+  let colName = header.findIndex(h => h === 'studentname' || h === '이름' || h === '학생이름' || h === '성명');
+  let colClass = header.findIndex(h => h === 'classid' || h === '반' || h === '학급');
+  let colPin = header.findIndex(h => h === 'pinhash' || h === 'pin' || h === '비밀번호' || h === '핀번호');
+
+  // 헤더가 특정되지 않은 경우 기본 인덱스 매핑
+  if (colNum < 0) colNum = 1;
+  if (colName < 0) colName = 2;
+  if (colClass < 0) colClass = 3;
+  if (colPin < 0) colPin = 4;
+
+  return data.slice(1).filter(r => r[colNum] || r[0]).map(r => {
+    // 0열이 4자리 숫자인 경우(학번 직접 입력 케이스 대응)
+    let sNum = formatStudentNumber_(r[colNum] || r[0]);
+    let sId = (colId >= 0 && r[colId]) ? String(r[colId]) : ('s' + sNum);
+    let sName = String(r[colName] || '');
+    let sClass = String(r[colClass] || '');
+    let sPin = colPin >= 0 ? formatPin_(r[colPin]) : '';
+
+    return {
+      studentId: sId,
+      studentNumber: sNum,
+      studentName: sName,
+      classId: sClass,
+      pinHash: sPin,
+    };
+  });
 }
 
 function getStudents_() {
@@ -1074,83 +1130,112 @@ function getStudentHome_(params) {
 // ==================== 초기 설정 도우미 ====================
 
 /**
- * 이 함수를 한 번 실행하여 시트 헤더와 기본 데이터를 설정합니다.
+ * 기존 영문 시트 탭 이름을 한글로 자동 변경하는 마이그레이션 함수
+ * Apps Script 에디터에서 migrateSheetsToKorean 함수를 실행하면
+ * 기존의 SETTINGS, STUDENTS, PAIRS 등의 탭 이름이 한글로 자동 변환됩니다.
+ */
+function migrateSheetsToKorean() {
+  const ss = getSs_();
+  const mapping = {
+    'SETTINGS': '설정',
+    'STUDENTS': '학생명단',
+    'SUBJECTS': '과목목록',
+    'PAIR_REQUESTS': '페어신청',
+    'PAIRS': '성사된페어',
+    'MISSIONS': '미션목록',
+    'MISSION_SUBMISSIONS': '미션제출',
+    'EXAM_RESULTS': '시험점수',
+    'RESULTS': '당첨결과',
+  };
+
+  let count = 0;
+  for (const [eng, kor] of Object.entries(mapping)) {
+    const sheet = ss.getSheetByName(eng);
+    if (sheet && !ss.getSheetByName(kor)) {
+      sheet.setName(kor);
+      count++;
+      Logger.log(`[시트 탭 변경 완료] ${eng} → ${kor}`);
+    }
+  }
+
+  Logger.log(`총 ${count}개의 시트 탭 이름이 한글로 변경되었습니다.`);
+  return { ok: true, migratedCount: count };
+}
+
+/**
+ * 이 함수를 한 번 실행하여 시트 헤더와 기본 데이터를 한글로 설정합니다.
  */
 function initializeSheets() {
   const ss = getSs_();
 
-  // SETTINGS
+  // 1. 설정 (SETTINGS)
   const settingsSheet = getSheet_(SHEETS.SETTINGS);
   if (settingsSheet.getDataRange().getValues().length <= 1) {
-    settingsSheet.appendRow(['key', 'value']);
-    settingsSheet.appendRow(['APPLICATION_OPEN', 'TRUE']);
-    settingsSheet.appendRow(['BASE_RANGE', 5]);
-    settingsSheet.appendRow(['BONUS_PER_MISSION', 1]);
-    settingsSheet.appendRow(['NEAR_MISS_RANGE', 3]);
-    settingsSheet.appendRow(['TARGET_OPTIONS', '100,120,140,160,180,200']);
+    settingsSheet.appendRow(['설정항목(Key)', '설정값(Value)', '설명']);
+    settingsSheet.appendRow(['APPLICATION_OPEN', 'TRUE', '전체 신청 오픈 여부']);
+    settingsSheet.appendRow(['BASE_RANGE', 5, '기본 당첨범위 (±점)']);
+    settingsSheet.appendRow(['BONUS_PER_MISSION', 1, '미션당 보너스 점수범위']);
+    settingsSheet.appendRow(['NEAR_MISS_RANGE', 3, '아차상 범위']);
+    settingsSheet.appendRow(['TARGET_OPTIONS', '100,120,140,160,180,200', '목표점수 후보']);
   }
 
-  // STUDENTS
+  // 2. 학생명단 (STUDENTS)
   const studentsSheet = getSheet_(SHEETS.STUDENTS);
   if (studentsSheet.getDataRange().getValues().length <= 1) {
-    studentsSheet.appendRow(['studentId', 'studentNumber', 'studentName', 'classId', 'pinHash']);
-    // 테스트 학생 데이터
-    studentsSheet.appendRow(['s2201', '2201', '홍길동', '2-2', '']);
-    studentsSheet.appendRow(['s2202', '2202', '김민수', '2-2', '']);
-    studentsSheet.appendRow(['s2203', '2203', '박지훈', '2-2', '']);
-    studentsSheet.appendRow(['s2204', '2204', '이도윤', '2-2', '']);
-    studentsSheet.appendRow(['s2205', '2205', '최현우', '2-2', '']);
-    studentsSheet.appendRow(['s2206', '2206', '정우진', '2-2', '']);
+    studentsSheet.appendRow(['학번ID', '학번', '이름', '반', '비밀번호PIN']);
+    studentsSheet.appendRow(['s2201', "'2201", '홍길동', '2-2', '']);
+    studentsSheet.appendRow(['s2202', "'2202", '김민수', '2-2', '']);
+    studentsSheet.appendRow(['s2203', "'2203", '박지훈', '2-2', '']);
   }
 
-  // SUBJECTS
+  // 3. 과목목록 (SUBJECTS)
   const subjectsSheet = getSheet_(SHEETS.SUBJECTS);
   if (subjectsSheet.getDataRange().getValues().length <= 1) {
-    subjectsSheet.appendRow(['subjectId', 'subjectName', 'maxScore', 'active']);
+    subjectsSheet.appendRow(['과목ID', '과목명', '만점', '신청가능여부']);
     subjectsSheet.appendRow(['korean', '국어', 100, true]);
     subjectsSheet.appendRow(['english', '영어', 100, true]);
     subjectsSheet.appendRow(['math', '수학', 100, true]);
     subjectsSheet.appendRow(['science', '과학', 100, true]);
   }
 
-  // PAIR_REQUESTS
+  // 4. 페어신청 (PAIR_REQUESTS)
   const reqSheet = getSheet_(SHEETS.PAIR_REQUESTS);
   if (reqSheet.getDataRange().getValues().length <= 1) {
-    reqSheet.appendRow(['requestId', 'subjectId', 'fromId', 'toId', 'target', 'status', 'createdAt']);
+    reqSheet.appendRow(['신청ID', '과목ID', '보낸학생', '받은학생', '목표점수', '상태', '신청일시']);
   }
 
-  // PAIRS
+  // 5. 성사된페어 (PAIRS)
   const pairsSheet = getSheet_(SHEETS.PAIRS);
   if (pairsSheet.getDataRange().getValues().length <= 1) {
-    pairsSheet.appendRow(['pairId', 'subjectId', 'studentA', 'studentB', 'target', 'baseRange', 'status', 'createdAt']);
+    pairsSheet.appendRow(['페어ID', '과목ID', '학생A', '학생B', '목표점수', '기본범위', '상태', '생성일시']);
   }
 
-  // MISSIONS
+  // 6. 미션목록 (MISSIONS)
   const missionsSheet = getSheet_(SHEETS.MISSIONS);
   if (missionsSheet.getDataRange().getValues().length <= 1) {
-    missionsSheet.appendRow(['missionId', 'missionNo', 'title', 'description']);
+    missionsSheet.appendRow(['미션ID', '미션번호', '미션제목', '미션설명']);
     missionsSheet.appendRow(['mission01', 1, 'MISSION 01 · 시험 예상 문제 공유', '각자 예상 문제 또는 문제집 문제 1개를 상대방에게 보내고 풀이 과정과 함께 인증']);
     missionsSheet.appendRow(['mission02', 2, 'MISSION 02 · 오답 도와주기', '서로 틀린 문제 또는 어려운 문제를 설명하고 해결한 결과 인증']);
     missionsSheet.appendRow(['mission03', 3, 'MISSION 03 · 시험범위 체크', '서로 부족한 범위나 공부할 부분을 확인하고 결과 인증']);
   }
 
-  // MISSION_SUBMISSIONS
+  // 7. 미션제출 (MISSION_SUBMISSIONS)
   const subSheet = getSheet_(SHEETS.MISSION_SUBMISSIONS);
   if (subSheet.getDataRange().getValues().length <= 1) {
-    subSheet.appendRow(['submissionId', 'pairId', 'subjectId', 'missionId', 'uploaderId', 'fileId', 'fileUrl', 'status', 'submittedAt']);
+    subSheet.appendRow(['제출ID', '페어ID', '과목ID', '미션ID', '제출학생', '구글파일ID', '사진URL', '상태', '제출일시']);
   }
 
-  // EXAM_RESULTS
+  // 8. 시험점수 (EXAM_RESULTS)
   const examSheet = getSheet_(SHEETS.EXAM_RESULTS);
   if (examSheet.getDataRange().getValues().length <= 1) {
-    examSheet.appendRow(['studentId', 'subjectId', 'score', 'uploadedAt']);
+    examSheet.appendRow(['학생ID', '과목ID', '점수', '등록일시']);
   }
 
-  // RESULTS
+  // 9. 당첨결과 (RESULTS)
   const resultsSheet = getSheet_(SHEETS.RESULTS);
   if (resultsSheet.getDataRange().getValues().length <= 1) {
-    resultsSheet.appendRow(['pairId', 'subjectId', 'studentA', 'studentB', 'scoreA', 'scoreB', 'sum', 'target', 'missionCount', 'finalRange', 'rangeMin', 'rangeMax', 'result']);
+    resultsSheet.appendRow(['페어ID', '과목ID', '학생A', '학생B', '점수A', '점수B', '점수합계', '목표점수', '미션달성수', '최종당첨범위', '최소당첨점', '최대당첨점', '당첨결과']);
   }
 
-  Logger.log('모든 시트가 초기화되었습니다.');
+  Logger.log('모든 시트가 한글 탭 및 한글 헤더로 초기화되었습니다.');
 }

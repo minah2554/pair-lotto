@@ -1324,18 +1324,27 @@ tr:hover td {
 /* ---------- 토스트 ---------- */
 .toast {
   position: fixed;
-  bottom: 20px;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(100px);
-  padding: 14px 24px;
-  border-radius: var(--radius-sm);
+  padding: 11px 22px;
+  border-radius: 9999px;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
   z-index: 10000;
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
   opacity: 0;
-  max-width: 90vw;
-  box-shadow: var(--shadow-lg);
+  max-width: 92vw;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 59, 107, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .toast.show {
@@ -1436,19 +1445,23 @@ tr:hover td {
 /* ---------- 빈 상태 ---------- */
 .empty-state {
   text-align: center;
-  padding: 40px 20px;
+  padding: 36px 16px;
   color: var(--text-secondary);
 }
 
 .empty-state .icon {
-  font-size: 40px;
-  margin-bottom: 12px;
-  opacity: 0.5;
+  font-size: 38px;
+  margin-bottom: 10px;
+  opacity: 0.6;
 }
 
 .empty-state p {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-align: center;
+  word-break: keep-all;
+  margin: 0 auto;
+  max-width: 90%;
 }
 
 /* ---------- 도움말 ---------- */
@@ -1456,7 +1469,10 @@ tr:hover td {
   color: var(--muted);
   font-size: 12px;
   margin-top: 8px;
-  line-height: 1.6;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+  display: block;
 }
 
 /* ---------- 관리자 탭 ---------- */
@@ -1781,11 +1797,12 @@ input[type="file"]::file-selector-button:hover {
 
 @media (max-width: 768px) {
   .footer-in {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
   }
   .f-legal {
-    text-align: left;
+    text-align: right;
   }
 }
 
@@ -2352,27 +2369,29 @@ input[type="file"]::file-selector-button:hover {
     width: 100%;
   }
 
-  /* 콤팩트 모바일 푸터 (최대 2~3줄) */
+  /* 모바일 푸터: 왼쪽(브랜드) / 오른쪽(저작권) 양끝 정렬 */
   .footer {
-    padding: 14px 12px 18px !important;
+    padding: 16px 14px 20px !important;
     margin-top: 24px !important;
   }
 
   .footer-in {
-    flex-direction: column !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
     align-items: center !important;
-    text-align: center !important;
-    gap: 6px !important;
+    text-align: left !important;
+    gap: 10px !important;
   }
 
   .f-brand {
-    justify-content: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
     gap: 8px !important;
   }
 
   .f-brand img {
-    width: 22px !important;
-    height: 22px !important;
+    width: 20px !important;
+    height: 20px !important;
   }
 
   .f-wm {
@@ -2380,18 +2399,14 @@ input[type="file"]::file-selector-button:hover {
   }
 
   .f-tag {
-    font-size: 10.5px !important;
+    font-size: 10px !important;
   }
 
   .f-legal {
-    text-align: center !important;
+    text-align: right !important;
     font-size: 10.5px !important;
     line-height: 1.35 !important;
-  }
-
-  .f-legal .f-subtext {
-    font-size: 9.5px !important;
-    opacity: 0.8;
+    white-space: nowrap !important;
   }
 }
 
