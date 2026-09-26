@@ -1210,8 +1210,23 @@ function submitMission_(params) {
       const targetFolder = propFolder || DRIVE_FOLDER_ID;
       const folderId = extractId_(targetFolder);
       if (folderId) {
+        // 파일명 생성을 위한 학생 및 미션 정보 조회
+        const student = getStudentsList_().find(s => s.studentId === params.uploaderId);
+        const mission = getMissionsList_().find(m => m.missionId === params.missionId);
+        const studentNum = student ? student.studentNumber : 'Unknown';
+        const missionTitle = mission ? mission.title.replace(/[\\/:*?"<>|]/g, '') : params.missionId; // 특수문자 제거
+        
+        const now = new Date();
+        const dStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyyMMdd_HHmm");
+        let ext = 'jpg';
+        if (params.mimeType) {
+          if (params.mimeType.includes('png')) ext = 'png';
+          else if (params.mimeType.includes('webp')) ext = 'webp';
+        }
+        const finalFileName = `${studentNum}_${missionTitle}_${dStr}.${ext}`;
+
         const bytes = Utilities.base64Decode(params.base64);
-        const blob = Utilities.newBlob(bytes, params.mimeType || 'image/jpeg', params.fileName || 'mission.jpg');
+        const blob = Utilities.newBlob(bytes, params.mimeType || 'image/jpeg', finalFileName);
         const file = DriveApp.getFolderById(folderId).createFile(blob);
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
         fileId = file.getId();

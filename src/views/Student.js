@@ -19,15 +19,26 @@ let lastDataHash = '';
 const revealedCardSet = new Set();
 
 /** 학생 화면 렌더링 */
-export function renderStudent(container) {
-  container.innerHTML = '';
+export async function renderStudent(container) {
+  // 1. 초기 렌더링: 로딩 스피너
+  container.innerHTML = `
+    <div style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--bg);">
+      <div class="spinner" style="width: 48px; height: 48px; border-width: 4px; margin-bottom: 20px;"></div>
+      <p style="color: var(--neon-cyan); font-weight: 700; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase;">데이터를 불러오는 중입니다...</p>
+    </div>
+  `;
 
+  // 2. 데이터 최초 로드 (DOM이 없어도 state 갱신 완료됨)
+  await loadStudentData(true);
+
+  // 3. 실제 UI 렌더링 (최신 state 기준)
+  container.innerHTML = '';
   const shell = el('div', { className: 'app-shell' });
   shell.innerHTML = buildStudentHTML();
   container.appendChild(shell);
 
-  // 데이터 로드
-  loadStudentData(true);
+  // 4. 화면이 DOM에 마운트된 후 내역 즉시 갱신
+  updateStudentUI();
 
   // Polling 시작
   startPolling();
@@ -240,6 +251,11 @@ async function loadStudentData(force = false) {
         const previewMyName = document.getElementById('previewMyName');
         if (topPlayerTag) topPlayerTag.innerHTML = `🎮 ${displayName}`;
         if (previewMyName) previewMyName.textContent = displayName;
+      } else {
+        // 명단에 내가 없으면(삭제됨 등) 자동 로그아웃
+        clearSession();
+        window.location.reload();
+        return;
       }
     }
 
@@ -290,14 +306,21 @@ function updateHUD() {
   }
 
   // 2. MISSION STATUS
-  let completedCount = 0;
   if (activePairs.length > 0) {
-    const submissions = state.missionSubmissions[activePairs[0].pairId] || [];
-    completedCount = submissions.length;
+    const totalMissionsPerSub = (state.missions && state.missions.length) || 3;
+    const missionTexts = activePairs.map(p => {
+      const subject = state.subjects.find(s => s.subjectId === p.subjectId);
+      const subName = subject ? subject.subjectName : p.subjectId;
+      const submissions = state.missionSubmissions[p.pairId] || [];
+      return `[${subName}] ${submissions.length}/${totalMissionsPerSub}`;
+    });
+    hudMission.textContent = missionTexts.join('   ');
+    hudMission.className = 'hud-value highlight-gold';
+    hudMission.style.fontSize = activePairs.length > 1 ? '14px' : '18px'; // 길이가 길어지면 폰트 조정
+  } else {
+    hudMission.textContent = '0 / 3 COMPLETE';
+    hudMission.className = 'hud-value';
   }
-  const totalMissions = (state.missions && state.missions.length) || 3;
-  const stars = '★'.repeat(completedCount) + '☆'.repeat(Math.max(0, totalMissions - completedCount));
-  hudMission.textContent = `${stars} (${completedCount}/${totalMissions})`;
 
   // 3. RESULT STATUS
   if (state.results && state.results.length > 0) {
@@ -692,14 +715,19 @@ function updateMissionSection() {
   let html = '';
   activePairs.forEach(pair => {
     const subject = state.subjects.find(s => s.subjectId === pair.subjectId);
+    const subName = subject?.subjectName || pair.subjectId;
     const submissions = state.missionSubmissions[pair.pairId] || [];
     const completedMissions = submissions.map(s => s.missionId);
     const totalCompleted = completedMissions.length;
+    const totalMissions = state.missions.length;
 
     html += `
-      <div style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-        <span class="badge" style="background:rgba(0,240,255,0.15); color:var(--neon-cyan); font-weight:800; border:1px solid rgba(0,240,255,0.3);">
-          [ 🧪 ${subject?.subjectName || pair.subjectId} 미션 ]
+      <div style="margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <span class="badge" style="background:rgba(0,240,255,0.15); color:var(--neon-cyan); font-weight:800; border:1px solid rgba(0,240,255,0.3); font-size:14px; padding:6px 12px;">
+          🧪 [${subName}] 미션
+        </span>
+        <span class="badge badge-open" style="font-weight:800; font-size:13px;">
+          완료: ${totalCompleted} / ${totalMissions}
         </span>
       </div>
     `;
@@ -744,9 +772,13 @@ function updateMissionSection() {
   });
 
   const totalMissions = state.missions.length;
+  const maxPossibleMissions = totalMissions * activePairs.length;
   const totalDone = Object.values(state.missionSubmissions).flat().length;
-  missionBadge.textContent = `${Math.min(totalDone, totalMissions)} / ${totalMissions} 완료`;
-  missionBadge.className = 'badge badge-open';
+  
+  if (activePairs.length > 0) {
+    missionBadge.textContent = `전체 완료: ${totalDone} / ${maxPossibleMissions}`;
+    missionBadge.className = 'badge badge-open';
+  }
   missionContent.innerHTML = html;
 
   // 사진 업로드 이벤트

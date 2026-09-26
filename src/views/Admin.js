@@ -140,6 +140,11 @@ function renderTab(tab) {
 // ==================== 대시보드 ====================
 function renderDashboard(content) {
   const stats = state.dashboard || {};
+  const maxPairs = stats.totalStudents || 0;
+  const currentPairs = stats.activePairs || 0;
+  const completionRate = maxPairs > 0 ? Math.round((currentPairs / maxPairs) * 100) : 0;
+  const isAllMatched = maxPairs > 0 && currentPairs >= maxPairs;
+
   content.innerHTML = `
     <div class="hero-card teacher">
       <div>
@@ -154,6 +159,28 @@ function renderDashboard(content) {
         <button id="autoMatchBtn" class="btn btn-gold btn-lg" style="box-shadow:0 0 16px rgba(255,209,102,0.4);" title="${TEXTS.admin.pairs.autoMatchNotice}">
           ${TEXTS.admin.dashboard.autoMatchBtn}
         </button>
+      </div>
+    </div>
+
+    <!-- 매칭 달성 현황 지표 카드 -->
+    <div class="card" style="margin-bottom:20px; padding:20px; border-left:4px solid ${isAllMatched ? 'var(--good)' : 'var(--neon-cyan)'};">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h3 style="margin:0 0 6px 0; font-size:16px; color:var(--text);">전체 매칭 달성 현황</h3>
+          <p style="margin:0; font-size:13px; color:var(--text-secondary);">모든 학생이 2개씩 페어를 맺기 위한 목표 달성률입니다.</p>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:24px; font-weight:900; color:var(--text); font-family:'BcCardFont', sans-serif;">
+            ${currentPairs} / ${maxPairs} <span style="font-size:16px; color:var(--gold);">(${completionRate}%)</span>
+          </div>
+          ${isAllMatched 
+            ? `<div style="margin-top:4px;"><span class="badge badge-open" style="font-size:13px; padding:4px 10px; font-weight:800; box-shadow:0 0 12px rgba(0,255,136,0.3);">🎉 전원 매칭 완료!</span></div>`
+            : `<div style="margin-top:4px;"><span class="badge badge-warning" style="font-size:12px;">진행 중</span></div>`
+          }
+        </div>
+      </div>
+      <div style="margin-top:16px; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden;">
+        <div style="height:100%; width:${completionRate}%; background:${isAllMatched ? 'var(--good)' : 'var(--neon-cyan)'}; transition:width 0.5s ease;"></div>
       </div>
     </div>
 
