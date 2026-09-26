@@ -311,9 +311,25 @@ function updateReceivedRequests() {
   }
 
   listEl.innerHTML = '';
+  const myActivePairs = (state.myPairs || []).filter(p => p.status === 'ACTIVE');
+  const myActiveSubjects = new Set(myActivePairs.map(p => p.subjectId));
+  const myPartnerIds = new Set(myActivePairs.map(p => (p.studentA === state.student?.studentId ? p.studentB : p.studentA)));
+  const isFull = myActivePairs.length >= 2;
+
   requests.forEach(req => {
     const fromStudent = state.students.find(s => s.studentId === req.fromId);
     const subject = state.subjects.find(s => s.subjectId === req.subjectId);
+
+    // 수락 불가 예외 조건 확인
+    const hasSameSubject = myActiveSubjects.has(req.subjectId);
+    const hasSamePartner = myPartnerIds.has(req.fromId);
+    const canAccept = !isFull && !hasSameSubject && !hasSamePartner;
+
+    let blockedReason = '';
+    if (isFull) blockedReason = '⚠️ 최대 페어(2개)를 모두 완료함';
+    else if (hasSameSubject) blockedReason = `⚠️ 이미 [${subject?.subjectName || req.subjectId}] 과목 페어가 있음`;
+    else if (hasSamePartner) blockedReason = `⚠️ 이미 [${fromStudent?.studentName || req.fromId}] 친구와 페어가 있음`;
+
     const card = el('div', { className: 'incoming-event-card' });
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
@@ -328,9 +344,13 @@ function updateReceivedRequests() {
           <div style="font-size:13px; color:var(--text-secondary);">
             목표 합산점수: <b style="color:var(--gold); font-family:'BcCardFont'; font-size:16px;">TARGET ${req.target}점</b>
           </div>
+          ${!canAccept ? `<div style="font-size:12px; color:var(--danger); font-weight:700; margin-top:4px;">${blockedReason} (수락 불가)</div>` : ''}
         </div>
         <div class="row-actions" style="gap:10px;">
-          <button class="btn btn-success accept-btn" data-id="${req.requestId}" style="padding:10px 22px; font-weight:800; font-size:14px; box-shadow:0 0 16px rgba(0,255,136,0.35);">✅ 수락</button>
+          ${canAccept
+            ? `<button class="btn btn-success accept-btn" data-id="${req.requestId}" style="padding:10px 22px; font-weight:800; font-size:14px; box-shadow:0 0 16px rgba(0,255,136,0.35);">✅ 수락</button>`
+            : `<button class="btn btn-ghost disabled-accept-btn" disabled style="padding:10px 18px; font-size:13px; opacity:0.4; cursor:not-allowed;" title="${blockedReason}">수락 불가</button>`
+          }
           <button class="btn btn-danger reject-btn" data-id="${req.requestId}" style="padding:10px 18px; font-size:13px;">거절</button>
         </div>
       </div>
@@ -487,29 +507,42 @@ function updateNewRequestForm() {
   const globalOpen = state.applicationStatus.globalOpen;
   const hasActivePair = state.myPairs.some(p => p.status === 'ACTIVE');
 
-  // 과목 옵션 갱신 (옵션 구성이 변경된 경우에만 DOM 재구성하여 드롭다운 풀림 방지)
+  // 과목 옵션 갱신 (이미 성사된 과목은 비활성화하여 서로 다른 과목 보장)
+  const myActivePairs = (state.myPairs || []).filter(p => p.status === 'ACTIVE');
+  const myActiveSubjects = new Set(myActivePairs.map(p => p.subjectId));
+
   const currentSubjectOpts = Array.from(subjectSelect.options).map(o => o.value + ':' + o.disabled).join('|');
   const newSubjectOpts = state.subjects.map(s => {
     const subOpen = state.applicationStatus.subjects[s.subjectId] !== false;
-    return s.subjectId + ':' + (!subOpen || !globalOpen);
+    const alreadyDone = myActiveSubjects.has(s.subjectId);
+    return s.subjectId + ':' + (!subOpen || !globalOpen || alreadyDone);
   }).join('|');
 
   if (currentSubjectOpts !== newSubjectOpts || subjectSelect.options.length === 0) {
     subjectSelect.innerHTML = '';
     state.subjects.forEach(s => {
       const subOpen = state.applicationStatus.subjects[s.subjectId] !== false;
+      const alreadyDone = myActiveSubjects.has(s.subjectId);
       const opt = document.createElement('option');
       opt.value = s.subjectId;
-      opt.textContent = s.subjectName + (subOpen ? '' : ' (마감)');
-      opt.disabled = !subOpen || !globalOpen;
+      if (alreadyDone) {
+        opt.textContent = `${s.subjectName} (이미 페어 완료)`;
+        opt.disabled = true;
+      } else if (!subOpen) {
+        opt.textContent = `${s.subjectName} (과목 마감)`;
+        opt.disabled = true;
+      } else {
+        opt.textContent = s.subjectName;
+        opt.disabled = !globalOpen;
+      }
       subjectSelect.appendChild(opt);
     });
-    if (prevSubject && Array.from(subjectSelect.options).some(o => o.value === prevSubject)) {
+    if (prevSubject && Array.from(subjectSelect.options).some(o => o.value === prevSubject && !o.disabled)) {
       subjectSelect.value = prevSubject;
     }
   }
 
-  // 친구 옵션 갱신 (소외 방지: 아직 짝이 없는 친구 우선 표시 & 2개 완료된 친구 비활성화)
+  // 친구 옵션 갱신 (소외 방지: 아직 짝이 없는 친구 우선 표시 & 2개 완료된 친구 / 이미 나와 짝인 친구 비활성화)
   const otherStudents = state.students.filter(s => s.studentId !== state.student?.studentId);
 
   // 친구별 활성 페어 수 집계
@@ -523,9 +556,7 @@ function updateNewRequestForm() {
   });
 
   // 이미 나와 성사된 페어 대상자 ID 목록
-  const myPartnerIds = state.myPairs
-    .filter(p => p.status === 'ACTIVE')
-    .map(p => (p.studentA === state.student?.studentId ? p.studentB : p.studentA));
+  const myPartnerIds = myActivePairs.map(p => (p.studentA === state.student?.studentId ? p.studentB : p.studentA));
 
   // 소외 방지 정렬: 짝이 0개인 친구 최상단 -> 1개인 친구 -> 2개 완료 친구 순
   const sortedStudents = [...otherStudents].sort((a, b) => {
@@ -552,7 +583,7 @@ function updateNewRequestForm() {
       const opt = document.createElement('option');
       opt.value = s.studentId;
       if (alreadyWithMe) {
-        opt.textContent = `${s.studentNumber} ${s.studentName} (이미 나의 짝꿍)`;
+        opt.textContent = `${s.studentNumber} ${s.studentName} (이미 나의 짝꿍 - 중복 불가)`;
         opt.disabled = true;
       } else if (isFull) {
         opt.textContent = `${s.studentNumber} ${s.studentName} (매칭 완료 2/2)`;
@@ -595,7 +626,7 @@ function updateNewRequestForm() {
   syncPreview();
 
   // 1인당 최대 2개 페어 및 신청 가능 여부
-  const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
+  const activePairsCount = myActivePairs.length;
 
   if (!globalOpen) {
     badge.textContent = '신청 마감';
@@ -614,13 +645,13 @@ function updateNewRequestForm() {
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700; text-align:center; display:block; word-break:keep-all;">✨ 1개의 페어가 완료되었어요. 추가로 1명 더 짝꿍을 맺을 수 있어요!</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700; text-align:center; display:block; word-break:keep-all;">✨ 1개의 페어가 완료되었어요. 반드시 <b>[서로 다른 친구]</b>, <b>[서로 다른 과목]</b>으로 1명 더 짝꿍을 맺을 수 있어요!</span>';
   } else {
     badge.textContent = '신청 가능 (최대 2개)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.innerHTML = '<span style="text-align:center; display:block; word-break:keep-all;">최대 2개 과목까지 친구와 짝꿍을 맺을 수 있어요.</span>';
+    if (helpText) helpText.innerHTML = '<span style="text-align:center; display:block; word-break:keep-all;">1인당 최대 2개 페어 가능하며, 반드시 <b>[서로 다른 친구]</b>, <b>[서로 다른 과목]</b>이어야 합니다.</span>';
   }
 }
 
@@ -850,10 +881,27 @@ async function handleSendRequest() {
     return;
   }
 
+  const myActivePairs = (state.myPairs || []).filter(p => p.status === 'ACTIVE');
+
   // 최대 2개 페어 제한
-  const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
-  if (activePairsCount >= 2) {
+  if (myActivePairs.length >= 2) {
     await showAlertModal('이미 최대 페어(2개)를 모두 완료했습니다.\n다른 친구와 페어하려면 먼저 위의 [나의 응모권]에서 기존 페어를 [페어 끊기] 해주세요.', '페어 신청 불가');
+    return;
+  }
+
+  // 서로 다른 과목 검증: 내가 이미 해당 과목 페어가 있는지
+  const hasSameSubject = myActivePairs.some(p => p.subjectId === subjectId);
+  if (hasSameSubject) {
+    const sub = state.subjects.find(s => s.subjectId === subjectId);
+    await showAlertModal(`이미 [${sub?.subjectName || subjectId}] 과목의 페어를 완료했습니다.\n페어는 반드시 [서로 다른 과목]이어야 합니다.`, '신청 불가');
+    return;
+  }
+
+  // 서로 다른 친구 검증: 내가 이미 해당 친구와 페어가 있는지
+  const hasSamePartner = myActivePairs.some(p => p.studentA === friendId || p.studentB === friendId);
+  if (hasSamePartner) {
+    const fr = state.students.find(s => s.studentId === friendId);
+    await showAlertModal(`이미 [${fr?.studentName || friendId}] 친구와 페어가 성사되어 있습니다.\n페어는 반드시 [서로 다른 친구]와 맺어야 합니다.`, '신청 불가');
     return;
   }
 
@@ -888,19 +936,36 @@ async function handleSendRequest() {
 
 /** PAIR 신청 수락 */
 async function handleAccept(requestId) {
+  const myActivePairs = (state.myPairs || []).filter(p => p.status === 'ACTIVE');
+
   // 1인당 최대 2개 페어 허용 (학급 인원 홀수 대응)
-  const activePairsCount = state.myPairs.filter(p => p.status === 'ACTIVE').length;
-  if (activePairsCount >= 2) {
+  if (myActivePairs.length >= 2) {
     await showAlertModal('이미 최대 페어(2개)를 모두 완료했습니다.\n다른 신청을 수락하려면 기존 페어를 먼저 [페어 끊기] 해주세요.', '수락 불가');
+    return;
+  }
+
+  const req = state.receivedRequests.find(r => r.requestId === requestId);
+  if (!req) return;
+
+  const fromStudent = state.students.find(s => s.studentId === req.fromId);
+  const subject = state.subjects.find(s => s.subjectId === req.subjectId);
+
+  // 서로 다른 과목 검증: 내가 이미 해당 과목 페어를 맺었는지 확인
+  const hasSameSubject = myActivePairs.some(p => p.subjectId === req.subjectId);
+  if (hasSameSubject) {
+    await showAlertModal(`이미 [${subject?.subjectName || req.subjectId}] 과목의 페어를 완료하여, 같은 과목에 대한 다른 신청서는 수락할 수 없습니다.`, '수락 불가');
+    return;
+  }
+
+  // 서로 다른 친구 검증: 내가 이미 해당 친구와 페어를 맺었는지 확인
+  const hasSamePartner = myActivePairs.some(p => p.studentA === req.fromId || p.studentB === req.fromId);
+  if (hasSamePartner) {
+    await showAlertModal(`이미 [${fromStudent?.studentName || req.fromId}] 친구와 다른 과목에서 페어가 성사되어 있습니다.\n페어는 반드시 [서로 다른 친구]와 맺어야 합니다.`, '수락 불가');
     return;
   }
 
   const ok = await showConfirm('이 PAIR 신청을 수락하시겠습니까?\n수락 시 정식 페어가 성사됩니다.');
   if (!ok) return;
-
-  const req = state.receivedRequests.find(r => r.requestId === requestId);
-  const fromStudent = state.students.find(s => s.studentId === req?.fromId);
-  const subject = state.subjects.find(s => s.subjectId === req?.subjectId);
 
   try {
     await api.acceptPairRequest(requestId, state.student.studentId);

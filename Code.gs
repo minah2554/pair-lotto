@@ -172,6 +172,8 @@ function handleAction(action, params) {
     case 'addSubject': return addSubject_(params);
     case 'deleteSubject': return deleteSubject_(params);
     case 'autoMatchUnpairedStudents': return autoMatchUnpairedStudents_(params);
+    case 'previewAutoMatch': return previewAutoMatch_(params);
+    case 'saveAutoMatchedPairs': return saveAutoMatchedPairs_(params);
     case 'uploadExamResults': return uploadExamResults_(params);
     case 'calculateResults': return calculateResults_();
     case 'getAllResults': return getAllResults_();
@@ -346,16 +348,56 @@ function getStudents_() {
 function loginStudent_(params) {
   const studentNumber = formatStudentNumber_(params.studentNumber);
   const pin = formatPin_(params.pin);
+
+  if (!studentNumber || studentNumber.length !== 4) {
+    throw new Error('학번 4자리를 정확히 입력해주세요.');
+  }
+  if (!pin || pin.length !== 4) {
+    throw new Error('비밀번호 4자리를 정확히 입력해주세요.');
+  }
+
   const students = getStudentsList_();
   let student = students.find(s => formatStudentNumber_(s.studentNumber) === studentNumber);
-  if (!student) throw new Error('등록되지 않은 학생입니다. [처음이에요] 버튼을 눌러 먼저 초기 비밀번호를 설정해주세요.');
-  
-  if (!student.pinHash || String(student.pinHash).trim() === '') {
-    throw new Error('초기 비밀번호가 설정되지 않은 학생입니다. [처음이에요] 버튼을 눌러 초기 비밀번호를 먼저 설정해주세요.');
+  if (!student) {
+    throw new Error('등록되지 않은 학생입니다. 선생님께 명단 등록을 문의하세요.');
   }
-  
+
+  // 1. 첫 로그인인 경우 (비밀번호가 비어있음): 입력한 비밀번호를 시트에 바로 저장
+  if (!student.pinHash || String(student.pinHash).trim() === '') {
+    const lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      const sheet = getSheet_(SHEETS.STUDENTS);
+      const data = sheet.getDataRange().getValues();
+      const header = data[0].map(h => String(h || '').trim().toLowerCase());
+      let colNum = header.findIndex(h => h === 'studentnumber' || h === '학번' || h === '번호');
+      let colPin = header.findIndex(h => h === 'pinhash' || h === 'pin' || h === '비밀번호' || h === '핀번호');
+      if (colNum < 0) colNum = 1;
+      if (colPin < 0) colPin = 4;
+
+      const idx = data.findIndex((r, i) => i > 0 && formatStudentNumber_(r[colNum] || r[0]) === studentNumber);
+      if (idx > 0) {
+        sheet.getRange(idx + 1, colPin + 1).setValue("'" + pin);
+      }
+    } finally {
+      lock.releaseLock();
+    }
+
+    return {
+      ok: true,
+      isFirstLogin: true,
+      student: {
+        studentId: student.studentId,
+        studentNumber: student.studentNumber,
+        studentName: student.studentName,
+        classId: student.classId,
+      }
+    };
+  }
+
+  // 2. 이미 비밀번호가 설정된 경우: 비밀번호 일치 검사
   if (formatPin_(student.pinHash) !== pin) {
-    throw new Error('비밀번호가 일치하지 않습니다.');
+    throw new Error('비밀번호가 일치하지 않습니다. (비밀번호 분실 시 선생님께 초기화를 요청하세요)');
   }
 
   return {
@@ -581,24 +623,42 @@ function createPairRequest_(params) {
   lock.waitLock(10000);
   try {
     const pairs = getPairsList_();
+    const activePairs = pairs.filter(p => p.status === 'ACTIVE');
 
     // 1인당 최대 2개 페어 허용 (학급 인원 홀수 대비)
-    const fromCount = pairs.filter(p =>
-      p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
+    const fromCount = activePairs.filter(p =>
+      p.studentA === fromId || p.studentB === fromId
     ).length;
     if (fromCount >= 2) throw new Error('이미 최대 페어(2개)를 모두 완료했습니다.');
 
-    const toCount = pairs.filter(p =>
-      p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+    const toCount = activePairs.filter(p =>
+      p.studentA === toId || p.studentB === toId
     ).length;
     if (toCount >= 2) throw new Error('해당 친구는 이미 최대 페어(2개)를 모두 완료했습니다.');
 
-    // 동일 친구와 동일 과목 중복 페어 검사
-    const alreadyPaired = pairs.some(p =>
-      p.status === 'ACTIVE' && p.subjectId === subjectId &&
-      ((p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId))
+    // [예외처리 1: 서로 다른 학생] 과목이 다르더라도 이미 나와 페어를 맺은 동일한 친구와는 중복 페어 불가
+    const alreadyPartnerWithFriend = activePairs.some(p =>
+      (p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId)
     );
-    if (alreadyPaired) throw new Error('이미 해당 친구와 동일 과목 페어가 성사되어 있습니다.');
+    if (alreadyPartnerWithFriend) {
+      throw new Error('이미 페어를 맺은 친구와는 두 번째 페어를 맺을 수 없습니다. (반드시 서로 다른 친구와 페어해야 합니다)');
+    }
+
+    // [예외처리 2: 서로 다른 과목] 내가 이미 해당 과목 페어가 있는지 검사
+    const fromHasSubject = activePairs.some(p =>
+      p.subjectId === subjectId && (p.studentA === fromId || p.studentB === fromId)
+    );
+    if (fromHasSubject) {
+      throw new Error('이미 해당 과목의 페어를 완료했습니다. (서로 다른 과목으로 페어해야 합니다)');
+    }
+
+    // [예외처리 3: 서로 다른 과목] 상대방이 이미 해당 과목 페어가 있는지 검사
+    const toHasSubject = activePairs.some(p =>
+      p.subjectId === subjectId && (p.studentA === toId || p.studentB === toId)
+    );
+    if (toHasSubject) {
+      throw new Error('해당 친구는 이미 해당 과목의 페어를 완료했습니다.');
+    }
 
     // 동일 친구에게 대기 중인 신청 검사
     const requests = getRequestsList_();
@@ -663,17 +723,43 @@ function acceptPairRequest_(params) {
 
     if (!isApplicationOpen_(subjectId)) throw new Error('신청 변경 기간이 마감되었습니다.');
 
-    // 최대 2개 페어 검사
     const pairs = getPairsList_();
-    const fromCount = pairs.filter(p =>
-      p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
+    const activePairs = pairs.filter(p => p.status === 'ACTIVE');
+
+    // 최대 2개 페어 검사
+    const fromCount = activePairs.filter(p =>
+      p.studentA === fromId || p.studentB === fromId
     ).length;
     if (fromCount >= 2) throw new Error('신청 학생이 이미 최대 페어(2개)를 모두 완료했습니다.');
 
-    const toCount = pairs.filter(p =>
-      p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
+    const toCount = activePairs.filter(p =>
+      p.studentA === toId || p.studentB === toId
     ).length;
     if (toCount >= 2) throw new Error('이미 최대 페어(2개)를 모두 완료했습니다.');
+
+    // [예외처리 1: 서로 다른 학생] 과목이 다르더라도 이미 나와 페어를 맺은 동일한 친구와는 중복 수락 불가
+    const alreadyPartner = activePairs.some(p =>
+      (p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId)
+    );
+    if (alreadyPartner) {
+      throw new Error('이미 해당 친구와 다른 과목에서 페어가 성사되어 있습니다. 페어는 반드시 서로 다른 학생과 맺어야 합니다.');
+    }
+
+    // [예외처리 2: 서로 다른 과목] 수락자(나)가 이미 해당 과목 페어를 맺은 경우 다른 신청서 수락 차단
+    const toHasSubject = activePairs.some(p =>
+      p.subjectId === subjectId && (p.studentA === toId || p.studentB === toId)
+    );
+    if (toHasSubject) {
+      throw new Error('이미 해당 과목의 페어를 완료하여, 같은 과목에 대한 다른 신청서는 수락할 수 없습니다.');
+    }
+
+    // [예외처리 3: 서로 다른 과목] 신청 학생이 이미 해당 과목 페어를 맺은 경우 수락 차단
+    const fromHasSubject = activePairs.some(p =>
+      p.subjectId === subjectId && (p.studentA === fromId || p.studentB === fromId)
+    );
+    if (fromHasSubject) {
+      throw new Error('신청 학생이 이미 해당 과목의 페어를 완료하여 수락할 수 없습니다.');
+    }
 
     // 신청 상태 변경
     sheet.getRange(idx + 1, 6).setValue('ACCEPTED');
@@ -684,17 +770,29 @@ function acceptPairRequest_(params) {
     const baseRange = Number(getSetting_('BASE_RANGE') || 5);
     pairSheet.appendRow([pairId, subjectId, fromId, toId, Number(row[4]), baseRange, 'ACTIVE', new Date().toISOString()]);
 
-    // 성사 후 2개 페어가 꽉 찬 학생의 남은 PENDING 신청만 취소 처리
+    // 성사 후 정리 작업:
+    // 1) 2개 페어가 꽉 찬 학생의 남은 PENDING 신청 취소
+    // 2) 이번에 페어 성사된 과목(subjectId)에 대한 fromId, toId의 다른 PENDING 신청 취소
+    // 3) fromId와 toId 사이의 남아있는 다른 과목 PENDING 신청 취소
     const newFromCount = fromCount + 1;
     const newToCount = toCount + 1;
     for (let i = 1; i < data.length; i++) {
       if (i !== idx && String(data[i][5]) === 'PENDING') {
+        const sub = String(data[i][1]);
         const f = String(data[i][2]);
         const t = String(data[i][3]);
-        if (newFromCount >= 2 && (f === fromId || t === fromId)) {
-          sheet.getRange(i + 1, 6).setValue('CANCELLED');
-        }
-        if (newToCount >= 2 && (f === toId || t === toId)) {
+
+        const involvesFrom = (f === fromId || t === fromId);
+        const involvesTo = (f === toId || t === toId);
+        const betweenBoth = (f === fromId && t === toId) || (f === toId && t === fromId);
+
+        let shouldCancel = false;
+        if (newFromCount >= 2 && involvesFrom) shouldCancel = true;
+        if (newToCount >= 2 && involvesTo) shouldCancel = true;
+        if (sub === subjectId && (involvesFrom || involvesTo)) shouldCancel = true;
+        if (betweenBoth) shouldCancel = true;
+
+        if (shouldCancel) {
           sheet.getRange(i + 1, 6).setValue('CANCELLED');
         }
       }
@@ -856,52 +954,218 @@ function unlockStudentPair_(params) {
   }
 }
 
-/** 관리자: 미응모/소외 학생 자동 매칭 (공평한 짝꿍 배정) */
-function autoMatchUnpairedStudents_(params) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(30000);
-  try {
-    const studentsRes = getStudentsList_();
-    const pairsSheet = getSheet_(SHEETS.PAIRS);
-    const pairs = getPairsList_();
+/** 관리자: 미응모/소외 학생 자동 매칭 미리보기 (시트에 저장하지 않고 후보 생성) */
+function previewAutoMatch_(params) {
+  const studentsRes = getStudentsList_();
+  const pairs = getPairsList_().filter(p => p.status === 'ACTIVE');
+  const subjects = getSubjectsList_().filter(s => s.active);
 
-    const studentPairCount = {};
-    studentsRes.forEach(s => { studentPairCount[s.studentId] = 0; });
-    pairs.filter(p => p.status === 'ACTIVE').forEach(p => {
-      studentPairCount[p.studentA] = (studentPairCount[p.studentA] || 0) + 1;
-      studentPairCount[p.studentB] = (studentPairCount[p.studentB] || 0) + 1;
-    });
+  if (subjects.length === 0) {
+    throw new Error('활성화된 과목이 없습니다.');
+  }
 
-    const needMatch = studentsRes.filter(s => (studentPairCount[s.studentId] || 0) < 2);
-    if (needMatch.length < 2) {
-      return { ok: true, matchedCount: 0, message: '자동 매칭할 대상 학생이 2명 미만입니다.' };
+  // 각 학생별 참여 과목 및 파트너 목록 집계
+  const studentMeta = {};
+  studentsRes.forEach(s => {
+    studentMeta[s.studentId] = {
+      student: s,
+      pairCount: 0,
+      pairedSubjects: new Set(),
+      pairedPartners: new Set(),
+    };
+  });
+
+  pairs.forEach(p => {
+    if (studentMeta[p.studentA]) {
+      studentMeta[p.studentA].pairCount++;
+      studentMeta[p.studentA].pairedSubjects.add(p.subjectId);
+      studentMeta[p.studentA].pairedPartners.add(p.studentB);
     }
+    if (studentMeta[p.studentB]) {
+      studentMeta[p.studentB].pairCount++;
+      studentMeta[p.studentB].pairedSubjects.add(p.subjectId);
+      studentMeta[p.studentB].pairedPartners.add(p.studentA);
+    }
+  });
 
-    const shuffled = needMatch.sort(() => Math.random() - 0.5);
-    const subjects = getSubjectsList_().filter(s => s.active);
-    const defaultSubject = subjects[0] || { subjectId: 'korean' };
-    const baseRange = Number(getSetting_('BASE_RANGE') || 5);
+  // 페어 2개 미만인 학생들만 대상 (0개인 학생 우선, 그 다음 1개인 학생)
+  const candidateIds = Object.keys(studentMeta).filter(id => studentMeta[id].pairCount < 2);
+  if (candidateIds.length < 2) {
+    return {
+      ok: true,
+      previewPairs: [],
+      unpairedStudents: candidateIds.map(id => studentMeta[id].student),
+      message: '자동 매칭 대상 학생이 2명 미만입니다.'
+    };
+  }
 
-    let matchedCount = 0;
-    for (let i = 0; i < shuffled.length - 1; i += 2) {
-      const studentA = shuffled[i].studentId;
-      const studentB = shuffled[i + 1].studentId;
+  // 셔플
+  const shuffledIds = [...candidateIds].sort(() => Math.random() - 0.5);
 
-      const already = pairs.some(p =>
-        p.status === 'ACTIVE' &&
-        ((p.studentA === studentA && p.studentB === studentB) || (p.studentA === studentB && p.studentB === studentA))
+  const previewPairs = [];
+  const assignedInRound = new Set();
+
+  for (let i = 0; i < shuffledIds.length; i++) {
+    const idA = shuffledIds[i];
+    if (assignedInRound.has(idA)) continue;
+    if (studentMeta[idA].pairCount >= 2) continue;
+
+    // 파트너 찾기 (서로 다른 학생, 공통 미이수 과목 존재)
+    let partnerId = null;
+    let chosenSubjectId = null;
+
+    for (let j = i + 1; j < shuffledIds.length; j++) {
+      const idB = shuffledIds[j];
+      if (assignedInRound.has(idB)) continue;
+      if (studentMeta[idB].pairCount >= 2) continue;
+
+      // 1. 이미 페어를 맺은 사이인지 검사 (서로 다른 학생 원칙)
+      if (studentMeta[idA].pairedPartners.has(idB) || studentMeta[idB].pairedPartners.has(idA)) {
+        continue;
+      }
+
+      // 2. 둘 모두에게 아직 없는 공통 과목 찾기 (서로 다른 과목 원칙)
+      const commonSubjects = subjects.filter(s =>
+        !studentMeta[idA].pairedSubjects.has(s.subjectId) &&
+        !studentMeta[idB].pairedSubjects.has(s.subjectId)
       );
-      if (!already) {
-        const pairId = Utilities.getUuid();
-        pairsSheet.appendRow([pairId, defaultSubject.subjectId, studentA, studentB, 180, baseRange, 'ACTIVE', new Date().toISOString()]);
-        matchedCount++;
+
+      if (commonSubjects.length > 0) {
+        partnerId = idB;
+        chosenSubjectId = commonSubjects[0].subjectId;
+        break;
       }
     }
 
-    return { ok: true, matchedCount };
+    if (partnerId && chosenSubjectId) {
+      assignedInRound.add(idA);
+      assignedInRound.add(partnerId);
+
+      studentMeta[idA].pairCount++;
+      studentMeta[idA].pairedSubjects.add(chosenSubjectId);
+      studentMeta[idA].pairedPartners.add(partnerId);
+
+      studentMeta[partnerId].pairCount++;
+      studentMeta[partnerId].pairedSubjects.add(chosenSubjectId);
+      studentMeta[partnerId].pairedPartners.add(idA);
+
+      previewPairs.push({
+        tempId: 'preview_' + Date.now() + '_' + previewPairs.length,
+        subjectId: chosenSubjectId,
+        studentA: idA,
+        studentB: partnerId,
+        target: 180,
+      });
+    }
+  }
+
+  // 매칭되지 못한 남은 학생 목록
+  const unpairedStudents = studentsRes.filter(s =>
+    (studentMeta[s.studentId]?.pairCount || 0) < 2 && !assignedInRound.has(s.studentId)
+  );
+
+  return {
+    ok: true,
+    previewPairs,
+    unpairedStudents,
+    totalCandidates: candidateIds.length,
+    matchedCount: previewPairs.length
+  };
+}
+
+/** 관리자: 교사가 미리보기에서 확인/수정한 자동 매칭 페어 목록 최종 일괄 저장 */
+function saveAutoMatchedPairs_(params) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const listToSave = params.pairs || [];
+    if (!Array.isArray(listToSave) || listToSave.length === 0) {
+      throw new Error('저장할 매칭 데이터가 없습니다.');
+    }
+
+    const pairsSheet = getSheet_(SHEETS.PAIRS);
+    const existingPairs = getPairsList_().filter(p => p.status === 'ACTIVE');
+    const baseRange = Number(getSetting_('BASE_RANGE') || 5);
+
+    // 각 학생의 활성 페어 수 및 과목 추적용 맵
+    const studentPairCount = {};
+    const studentSubjects = {};
+    const pairPartners = new Set();
+
+    existingPairs.forEach(p => {
+      studentPairCount[p.studentA] = (studentPairCount[p.studentA] || 0) + 1;
+      studentPairCount[p.studentB] = (studentPairCount[p.studentB] || 0) + 1;
+
+      if (!studentSubjects[p.studentA]) studentSubjects[p.studentA] = new Set();
+      if (!studentSubjects[p.studentB]) studentSubjects[p.studentB] = new Set();
+      studentSubjects[p.studentA].add(p.subjectId);
+      studentSubjects[p.studentB].add(p.subjectId);
+
+      pairPartners.add(`${p.studentA}::${p.studentB}`);
+      pairPartners.add(`${p.studentB}::${p.studentA}`);
+    });
+
+    let savedCount = 0;
+    const now = new Date().toISOString();
+
+    listToSave.forEach((item, index) => {
+      const { studentA, studentB, subjectId, target } = item;
+      if (!studentA || !studentB || !subjectId) return;
+      if (studentA === studentB) {
+        throw new Error(`[#${index + 1}팀] 동일한 학생끼리는 페어를 맺을 수 없습니다.`);
+      }
+
+      // 최대 2개 검사
+      if ((studentPairCount[studentA] || 0) >= 2) {
+        throw new Error(`[#${index + 1}팀] ${studentA} 학생은 이미 2개 페어가 완료되었습니다.`);
+      }
+      if ((studentPairCount[studentB] || 0) >= 2) {
+        throw new Error(`[#${index + 1}팀] ${studentB} 학생은 이미 2개 페어가 완료되었습니다.`);
+      }
+
+      // 서로 다른 학생 검사
+      if (pairPartners.has(`${studentA}::${studentB}`)) {
+        throw new Error(`[#${index + 1}팀] 두 학생은 이미 다른 과목에서 페어되어 있어 중복 매칭할 수 없습니다.`);
+      }
+
+      // 서로 다른 과목 검사
+      if (studentSubjects[studentA] && studentSubjects[studentA].has(subjectId)) {
+        throw new Error(`[#${index + 1}팀] ${studentA} 학생은 이미 해당 과목 페어가 있습니다.`);
+      }
+      if (studentSubjects[studentB] && studentSubjects[studentB].has(subjectId)) {
+        throw new Error(`[#${index + 1}팀] ${studentB} 학생은 이미 해당 과목 페어가 있습니다.`);
+      }
+
+      // 유효성 통과 -> 상태 업데이트 및 시트 추가
+      studentPairCount[studentA] = (studentPairCount[studentA] || 0) + 1;
+      studentPairCount[studentB] = (studentPairCount[studentB] || 0) + 1;
+
+      if (!studentSubjects[studentA]) studentSubjects[studentA] = new Set();
+      if (!studentSubjects[studentB]) studentSubjects[studentB] = new Set();
+      studentSubjects[studentA].add(subjectId);
+      studentSubjects[studentB].add(subjectId);
+
+      pairPartners.add(`${studentA}::${studentB}`);
+      pairPartners.add(`${studentB}::${studentA}`);
+
+      const pairId = Utilities.getUuid();
+      pairsSheet.appendRow([pairId, subjectId, studentA, studentB, Number(target || 180), baseRange, 'ACTIVE', now]);
+      savedCount++;
+    });
+
+    return { ok: true, savedCount, message: `${savedCount}개의 페어가 성공적으로 저장되었습니다.` };
   } finally {
     lock.releaseLock();
   }
+}
+
+/** 기존 호환용 즉시 자동 매칭 */
+function autoMatchUnpairedStudents_(params) {
+  const preview = previewAutoMatch_(params);
+  if (!preview.ok || preview.previewPairs.length === 0) {
+    return preview;
+  }
+  return saveAutoMatchedPairs_({ pairs: preview.previewPairs });
 }
 
 // ==================== 미션 관리 ====================

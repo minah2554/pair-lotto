@@ -184,24 +184,9 @@ function renderDashboard(content) {
     }
   });
 
-  // 소외 방지 미응모 학생 자동 매칭
-  content.querySelector('#autoMatchBtn')?.addEventListener('click', async () => {
-    const ok = await showConfirm(
-      '아직 짝꿍을 찾지 못한 학생들을 서로 자동으로 연결하여 모두가 참여할 수 있도록 매칭하시겠습니까?\n\n* 이미 2개 페어를 완료한 학생은 제외되며, 짝이 없거나 1명뿐인 학생들끼리 공평하게 배정됩니다.'
-    );
-    if (!ok) return;
-
-    try {
-      const res = await api.autoMatchUnpairedStudents();
-      if (res.matchedCount > 0) {
-        showToast(`🎉 ${res.matchedCount}개의 새로운 짝꿍이 성공적으로 자동 매칭되었습니다!`, 'success');
-      } else {
-        showToast(res.message || '매칭할 대상 학생이 없거나 모두 매칭 완료 상태입니다.', 'info');
-      }
-      await loadAdminData();
-    } catch (err) {
-      showToast(err.message || '자동 매칭에 실패했습니다.', 'error');
-    }
+  // 소외 방지 미응모 학생 자동 매칭 (미리보기 및 수동 편집 후 최종 확정)
+  content.querySelector('#autoMatchBtn')?.addEventListener('click', () => {
+    startAutoMatchFlow();
   });
 }
 
@@ -476,9 +461,14 @@ function renderPairsTab(content) {
 
   content.innerHTML = `
     <section class="card">
-      <div class="card-head">
-        <h3>🤝 PAIR 현황</h3>
-        <span class="badge badge-neutral">${activePairs.length}팀</span>
+      <div class="card-head" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h3>🤝 PAIR 현황</h3>
+          <span class="badge badge-neutral">${activePairs.length}팀</span>
+        </div>
+        <button id="autoMatchInPairsBtn" class="btn btn-gold btn-sm" style="box-shadow:0 0 12px rgba(255,209,102,0.35);">
+          ✨ 미응모 학생 자동 매칭
+        </button>
       </div>
       <div class="table-wrap">
         <table>
@@ -535,6 +525,10 @@ function renderPairsTab(content) {
       </div>
     </section>
   `;
+
+  content.querySelector('#autoMatchInPairsBtn')?.addEventListener('click', () => {
+    startAutoMatchFlow();
+  });
 
   content.querySelectorAll('.delete-pair-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -620,23 +614,52 @@ function renderMissionsTab(content) {
   });
 }
 
-/** 미션 인증 사진 원본 팝업 */
+/** 미션 인증 사진 원본 팝업 (스크립트 오류 수정 및 새 창/닫기 지원) */
 function openPhotoModal(imageUrl) {
-  const modal = el('div', { className: 'confirm-modal-overlay' });
+  if (!imageUrl) {
+    showToast('사진 URL이 존재하지 않습니다.', 'error');
+    return;
+  }
+
+  const modal = el('div', { className: 'modal-overlay photo-modal-overlay' });
   modal.innerHTML = `
-    <div class="confirm-modal-box" style="max-width: 680px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0; font-size:18px;">📷 미션 인증 사진 원본</h3>
-        <button class="btn btn-ghost btn-mini close-modal-btn">✕ 닫기</button>
+    <div class="modal-box photo-modal-box" style="max-width: 760px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px;">
+        <h3 style="margin:0; font-size:17px; font-weight:800; display:flex; align-items:center; gap:6px; color:var(--text);">
+          📷 미션 인증 사진 원본
+        </h3>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <a href="${imageUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-mini" style="font-size:12px; color:var(--neon-cyan); border:1px solid rgba(0,240,255,0.3);" title="새 창에서 원본 보기">
+            새 창으로 열기 ↗
+          </a>
+          <button type="button" class="btn btn-ghost btn-mini close-modal-btn" style="font-size:14px; font-weight:bold; padding:4px 10px;">
+            ✕ 닫기
+          </button>
+        </div>
       </div>
-      <div style="flex:1; overflow:auto; display:flex; justify-content:center; align-items:center; background:#000; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
-        <img src="${imageUrl}" alt="인증사진 원본" style="max-width:100%; max-height:70vh; object-fit:contain;" />
+      <div style="flex:1; min-height:220px; max-height:72vh; overflow:auto; display:flex; justify-content:center; align-items:center; background:#080914; border-radius:10px; border:1px solid rgba(255,255,255,0.1); padding:10px;">
+        <img src="${imageUrl}" alt="인증사진 원본" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:6px;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'padding:30px; text-align:center; color:var(--text-secondary);\\'><p style=\\'margin-bottom:10px;\\'>⚠️ 보안 정책상 이미지를 직접 렌더링할 수 없습니다.</p><a href=\\'${imageUrl}\\' target=\\'_blank\\' rel=\\'noopener noreferrer\\' class=\\'btn btn-primary btn-mini\\'>구글 드라이브에서 직접 확인하기 ↗</a></div>';" />
       </div>
     </div>
   `;
   document.body.appendChild(modal);
 
-  const closeModal = () => modal.remove();
+  // 부드러운 모달 진입 애니메이션
+  requestAnimationFrame(() => {
+    modal.classList.add('show');
+  });
+
+  const closeModal = () => {
+    modal.classList.remove('show');
+    document.removeEventListener('keydown', handleKeydown);
+    setTimeout(() => modal.remove(), 200);
+  };
+
+  const handleKeydown = (e) => {
+    if (e.key === 'Escape') closeModal();
+  };
+  document.addEventListener('keydown', handleKeydown);
+
   modal.querySelector('.close-modal-btn')?.addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
@@ -870,4 +893,346 @@ function renderSettingsTab(content) {
       showToast(err.message, 'error');
     }
   });
+}
+
+// ==================== 자동 매칭 미리보기 및 수동 편집/최종 확정 ====================
+
+/** 관리자: 미응모 학생 자동 매칭 플로우 시작 (미리보기 호출) */
+async function startAutoMatchFlow() {
+  showToast('자동 매칭 후보를 시뮬레이션하는 중입니다...', 'info');
+
+  try {
+    const res = await api.previewAutoMatch();
+    if (!res.ok) throw new Error(res.error || '자동 매칭 시뮬레이션 실패');
+
+    if (!res.previewPairs || res.previewPairs.length === 0) {
+      showToast(res.message || '매칭할 대상 학생이 없거나 모두 2개 페어를 완료했습니다.', 'info');
+      return;
+    }
+
+    openAutoMatchModal(res);
+  } catch (err) {
+    showToast(err.message || '자동 매칭에 실패했습니다.', 'error');
+  }
+}
+
+/** 관리자: 자동 매칭 미리보기 및 교사 수동 편집/최종 확정 모달 */
+function openAutoMatchModal(previewData) {
+  let pairs = (previewData.previewPairs || []).map(p => ({ ...p }));
+  const allStudents = state.students || [];
+  const subjects = (state.subjects || []).filter(s => s.active);
+
+  const modal = el('div', { className: 'modal-overlay automatch-modal-overlay' });
+  modal.innerHTML = `
+    <div class="modal-box automatch-modal-box" style="max-width: 900px; width: 96vw; max-height: 92vh; display: flex; flex-direction: column; padding: 24px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow-lg);">
+      <!-- 헤더 -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">🎲</span>
+            <h3 style="margin:0; font-size:19px; font-weight:800; color:var(--text);" id="modalTitle">
+              미응모 학생 자동 매칭 미리보기
+            </h3>
+            <span class="badge badge-warning" id="modalPairCountBadge" style="font-size:12px;">${pairs.length}팀</span>
+          </div>
+          <p style="margin:6px 0 0; font-size:13px; color:var(--text-secondary); line-height:1.5; word-break:keep-all;">
+            아직 짝이 없거나 1명뿐인 학생들을 공평하게 연결했습니다. <b>파트너, 과목, 목표 점수를 자유롭게 수정한 뒤 [최종 확정 저장]</b>을 누르세요.
+          </p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-mini close-automatch-btn" style="font-size:16px; font-weight:bold; padding:4px 10px;">✕</button>
+      </div>
+
+      <!-- 상단 컨트롤 (재추천 및 행 추가) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+        <div style="font-size:13px; color:var(--neon-cyan); font-weight:700;">
+          💡 수정 팁: 드롭다운을 열어 원하는 학생이나 목표점수를 바로 바꿀 수 있습니다.
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="reRollBtn" class="btn btn-ghost btn-mini" style="color:var(--gold); border:1px solid rgba(255,209,102,0.3);">
+            🎲 다시 섞기 (재추천)
+          </button>
+          <button type="button" id="addPairBtn" class="btn btn-primary btn-mini" style="font-weight:700;">
+            ➕ 새 매칭 추가
+          </button>
+        </div>
+      </div>
+
+      <!-- 페어 목록 테이블/리스트 영역 (스크롤 가능) -->
+      <div style="flex:1; overflow-y:auto; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,0.25); padding:10px;" id="pairListContainer">
+        <!-- 렌더링될 내용 -->
+      </div>
+
+      <!-- 미매칭 학생 현황 바 -->
+      <div style="margin-top:12px; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px dashed var(--line); border-radius:10px; font-size:12.5px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <span style="color:var(--text-secondary);">
+          👥 <b>미매칭 학생 풀:</b> <span id="unmatchedNames" style="color:var(--gold);">-</span>
+        </span>
+        <span style="color:var(--muted); font-size:11.5px;">* 1인당 최대 2개 페어 (서로 다른 학생/과목)</span>
+      </div>
+
+      <!-- 하단 액션 버튼 -->
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px; border-top:1px solid var(--line); padding-top:14px;">
+        <button type="button" class="btn btn-ghost cancel-btn" style="min-width:90px;">취소</button>
+        <button type="button" id="saveConfirmBtn" class="btn btn-gold btn-lg" style="font-weight:900; font-size:15px; padding:12px 28px; box-shadow:0 0 16px rgba(255,209,102,0.4);">
+          💾 최종 확정 저장 (${pairs.length}팀)
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  requestAnimationFrame(() => modal.classList.add('show'));
+
+  const closeModal = () => {
+    modal.classList.remove('show');
+    document.removeEventListener('keydown', handleKeydown);
+    setTimeout(() => modal.remove(), 200);
+  };
+  const handleKeydown = (e) => {
+    if (e.key === 'Escape') closeModal();
+  };
+  document.addEventListener('keydown', handleKeydown);
+
+  modal.querySelector('.close-automatch-btn')?.addEventListener('click', closeModal);
+  modal.querySelector('.cancel-btn')?.addEventListener('click', closeModal);
+
+  // 실시간 렌더링 함수
+  function updateModalUI() {
+    const container = modal.querySelector('#pairListContainer');
+    const countBadge = modal.querySelector('#modalPairCountBadge');
+    const saveBtn = modal.querySelector('#saveConfirmBtn');
+    const unmatchedSpan = modal.querySelector('#unmatchedNames');
+
+    if (countBadge) countBadge.textContent = `${pairs.length}팀`;
+    if (saveBtn) saveBtn.textContent = `💾 최종 확정 저장 (${pairs.length}팀)`;
+
+    // 미매칭 학생 계산
+    const currentPairCount = {};
+    allStudents.forEach(s => { currentPairCount[s.studentId] = 0; });
+    // 기존 활성 페어
+    (state.myPairs || []).filter(p => p.status === 'ACTIVE').forEach(p => {
+      if (currentPairCount[p.studentA] !== undefined) currentPairCount[p.studentA]++;
+      if (currentPairCount[p.studentB] !== undefined) currentPairCount[p.studentB]++;
+    });
+    // 현재 모달 내 페어
+    pairs.forEach(p => {
+      if (currentPairCount[p.studentA] !== undefined) currentPairCount[p.studentA]++;
+      if (currentPairCount[p.studentB] !== undefined) currentPairCount[p.studentB]++;
+    });
+
+    const stillUnmatched = allStudents.filter(s => (currentPairCount[s.studentId] || 0) < 2);
+    if (unmatchedSpan) {
+      if (stillUnmatched.length === 0) {
+        unmatchedSpan.innerHTML = '<b style="color:var(--good);">모든 학생이 2/2 매칭 완료되었습니다! ✨</b>';
+      } else {
+        unmatchedSpan.textContent = stillUnmatched.map(s => `${s.studentNumber} ${s.studentName} (${currentPairCount[s.studentId]}/2)`).join(', ');
+      }
+    }
+
+    if (pairs.length === 0) {
+      container.innerHTML = `
+        <div style="padding:40px 20px; text-align:center; color:var(--text-secondary);">
+          <div style="font-size:32px; margin-bottom:8px;">📭</div>
+          <p>편성된 매칭 팀이 없습니다.</p>
+          <button type="button" class="btn btn-primary btn-sm mt-1" id="emptyAddBtn">➕ 팀 추가하기</button>
+        </div>
+      `;
+      container.querySelector('#emptyAddBtn')?.addEventListener('click', addNewPairRow);
+      return;
+    }
+
+    let html = `
+      <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--line); color:var(--text-secondary); text-align:left; font-size:12px;">
+            <th style="padding:8px 6px; width:44px; text-align:center;">팀</th>
+            <th style="padding:8px 6px;">학생 A</th>
+            <th style="padding:8px 6px; text-align:center; width:28px;">×</th>
+            <th style="padding:8px 6px;">짝꿍 학생 B (수동 변경 가능)</th>
+            <th style="padding:8px 6px; width:130px;">과목</th>
+            <th style="padding:8px 6px; width:110px;">목표 합산점수</th>
+            <th style="padding:8px 6px; width:50px; text-align:center;">제외</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    pairs.forEach((pair, idx) => {
+      const isSameStudent = pair.studentA && pair.studentA === pair.studentB;
+
+      html += `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06); ${isSameStudent ? 'background:rgba(255,42,133,0.12);' : ''}">
+          <td style="padding:10px 6px; text-align:center; font-weight:800; color:var(--gold);">#${idx + 1}</td>
+          
+          <!-- 학생 A 드롭다운 -->
+          <td style="padding:10px 6px;">
+            <select class="form-select pair-student-a" data-idx="${idx}" style="padding:6px 10px; font-size:13px; font-weight:700; width:100%;">
+              ${allStudents.map(s => `
+                <option value="${s.studentId}" ${s.studentId === pair.studentA ? 'selected' : ''}>
+                  ${s.studentNumber} ${s.studentName}
+                </option>
+              `).join('')}
+            </select>
+          </td>
+
+          <td style="padding:10px 4px; text-align:center; font-weight:900; color:var(--gold);">×</td>
+
+          <!-- 학생 B 드롭다운 -->
+          <td style="padding:10px 6px;">
+            <select class="form-select pair-student-b" data-idx="${idx}" style="padding:6px 10px; font-size:13px; font-weight:700; width:100%;">
+              ${allStudents.map(s => `
+                <option value="${s.studentId}" ${s.studentId === pair.studentB ? 'selected' : ''}>
+                  ${s.studentNumber} ${s.studentName} ${s.studentId === pair.studentA ? '⚠️(동일)' : ''}
+                </option>
+              `).join('')}
+            </select>
+          </td>
+
+          <!-- 과목 드롭다운 -->
+          <td style="padding:10px 6px;">
+            <select class="form-select pair-subject" data-idx="${idx}" style="padding:6px 10px; font-size:13px; width:100%;">
+              ${subjects.map(sub => `
+                <option value="${sub.subjectId}" ${sub.subjectId === pair.subjectId ? 'selected' : ''}>
+                  ${sub.subjectName}
+                </option>
+              `).join('')}
+            </select>
+          </td>
+
+          <!-- 목표 점수 드롭다운 -->
+          <td style="padding:10px 6px;">
+            <select class="form-select pair-target" data-idx="${idx}" style="padding:6px 10px; font-size:13px; font-weight:800; color:var(--gold); width:100%;">
+              ${TARGET_OPTIONS.map(t => `
+                <option value="${t}" ${Number(pair.target) === Number(t) ? 'selected' : ''}>
+                  ${t}점
+                </option>
+              `).join('')}
+            </select>
+          </td>
+
+          <!-- 삭제 버튼 -->
+          <td style="padding:10px 6px; text-align:center;">
+            <button type="button" class="btn btn-ghost btn-mini remove-pair-row" data-idx="${idx}" style="color:var(--danger); font-size:12px; padding:4px 8px;" title="이 팀 매칭에서 제외">
+              🗑️
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+
+    // 이벤트 리스너 바인딩
+    container.querySelectorAll('.pair-student-a').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        pairs[idx].studentA = e.target.value;
+        updateModalUI();
+      });
+    });
+
+    container.querySelectorAll('.pair-student-b').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        pairs[idx].studentB = e.target.value;
+        updateModalUI();
+      });
+    });
+
+    container.querySelectorAll('.pair-subject').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        pairs[idx].subjectId = e.target.value;
+      });
+    });
+
+    container.querySelectorAll('.pair-target').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const idx = Number(e.target.dataset.idx);
+        pairs[idx].target = Number(e.target.value);
+      });
+    });
+
+    container.querySelectorAll('.remove-pair-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.dataset.idx);
+        pairs.splice(idx, 1);
+        updateModalUI();
+      });
+    });
+  }
+
+  function addNewPairRow() {
+    const defSub = subjects[0]?.subjectId || 'korean';
+    const sA = allStudents[0]?.studentId || '';
+    const sB = allStudents[1]?.studentId || allStudents[0]?.studentId || '';
+    pairs.push({
+      tempId: 'manual_' + Date.now(),
+      studentA: sA,
+      studentB: sB,
+      subjectId: defSub,
+      target: 180,
+    });
+    updateModalUI();
+  }
+
+  // 상단 새 팀 추가 버튼
+  modal.querySelector('#addPairBtn')?.addEventListener('click', addNewPairRow);
+
+  // 상단 다시 섞기 버튼
+  modal.querySelector('#reRollBtn')?.addEventListener('click', async () => {
+    try {
+      showToast('새로운 추천 매칭을 생성하는 중...', 'info');
+      const fresh = await api.previewAutoMatch();
+      if (fresh.ok && fresh.previewPairs) {
+        pairs = fresh.previewPairs.map(p => ({ ...p }));
+        updateModalUI();
+        showToast('새로운 매칭 추천으로 재구성되었습니다.', 'success');
+      }
+    } catch (err) {
+      showToast(err.message || '재추천 실패', 'error');
+    }
+  });
+
+  // 최종 확정 저장 버튼
+  modal.querySelector('#saveConfirmBtn')?.addEventListener('click', async () => {
+    if (pairs.length === 0) {
+      showToast('저장할 매칭 팀이 없습니다.', 'error');
+      return;
+    }
+
+    // 유효성 검사
+    for (let i = 0; i < pairs.length; i++) {
+      const p = pairs[i];
+      if (p.studentA === p.studentB) {
+        const st = allStudents.find(s => s.studentId === p.studentA);
+        showToast(`[#${i + 1}팀] ${st?.studentName || p.studentA} 학생이 자기 자신과 매칭되었습니다. 다른 파트너를 선택해주세요.`, 'error');
+        return;
+      }
+    }
+
+    const ok = await showConfirm(
+      `총 ${pairs.length}개의 매칭을 최종 확정하시겠습니까?\n\n* 확정 즉시 학생들의 PAIR 목록에 정식 등록됩니다.`
+    );
+    if (!ok) return;
+
+    const saveBtn = modal.querySelector('#saveConfirmBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '저장 중...';
+
+    try {
+      const res = await api.saveAutoMatchedPairs(pairs);
+      showToast(`🎉 ${res.savedCount || pairs.length}개의 페어가 성공적으로 최종 확정되었습니다!`, 'success');
+      closeModal();
+      await loadAdminData();
+    } catch (err) {
+      showToast(err.message || '매칭 저장에 실패했습니다.', 'error');
+      saveBtn.disabled = false;
+      saveBtn.textContent = `💾 최종 확정 저장 (${pairs.length}팀)`;
+    }
+  });
+
+  // 최초 렌더링
+  updateModalUI();
 }

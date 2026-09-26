@@ -32,6 +32,7 @@ export const TEXTS = {
     studentNumberPlaceholder: '예: 2201',
     pinLabel: '비밀번호 (4자리)',
     pinPlaceholder: '비밀번호 입력',
+    pinNotice: '※ 첫 로그인 시 입력한 비밀번호가 저장됩니다. 꼭 기억하세요!',
     loginButton: '로그인',
     firstTimeButton: '처음이에요 (초기 비밀번호 설정)',
 

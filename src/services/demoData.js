@@ -154,15 +154,25 @@ export function handleDemoApi(action, params) {
     case 'loginStudent': {
       const studentNumber = formatStudentNumber(params.studentNumber);
       const pin = formatPin(params.pin);
+      if (!studentNumber || studentNumber.length !== 4) {
+        return { error: '학번 4자리를 정확히 입력해주세요.' };
+      }
+      if (!pin || pin.length !== 4) {
+        return { error: '비밀번호 4자리를 정확히 입력해주세요.' };
+      }
+
       let student = DEMO_STUDENTS.find(s => formatStudentNumber(s.studentNumber) === studentNumber);
       if (!student) {
-        return { error: '등록되지 않은 학생입니다. [처음이에요] 버튼을 눌러 먼저 초기 비밀번호를 설정해주세요.' };
+        return { error: '등록되지 않은 학생입니다. 선생님께 명단 등록을 문의하세요.' };
       }
+      // 첫 로그인인 경우: 입력된 비밀번호 자동 저장
       if (!demoState.pins[studentNumber]) {
-        return { error: '초기 비밀번호가 설정되지 않은 학생입니다. [처음이에요] 버튼을 눌러 초기 비밀번호를 먼저 설정해주세요.', needsSetup: true };
+        demoState.pins[studentNumber] = pin;
+        return { ok: true, isFirstLogin: true, student };
       }
+      // 기존 비밀번호가 있는 경우: 검증
       if (formatPin(demoState.pins[studentNumber]) !== pin) {
-        return { error: '비밀번호가 일치하지 않습니다.' };
+        return { error: '비밀번호가 일치하지 않습니다. (비밀번호 분실 시 선생님께 초기화를 요청하세요)' };
       }
       return { ok: true, student };
     }
@@ -254,23 +264,38 @@ export function handleDemoApi(action, params) {
         return { error: '응모가 마감되었습니다.' };
       }
 
-      // 1인당 최대 2개 페어 허용 (학급 인원 홀수 대비)
-      const fromCount = demoState.pairs.filter(p =>
-        p.status === 'ACTIVE' && (p.studentA === fromId || p.studentB === fromId)
-      ).length;
+      const activePairs = demoState.pairs.filter(p => p.status === 'ACTIVE');
+
+      // 1인당 최대 2개 페어 허용
+      const fromCount = activePairs.filter(p => p.studentA === fromId || p.studentB === fromId).length;
       if (fromCount >= 2) return { error: '이미 최대 페어(2개)를 모두 완료했습니다.' };
 
-      const toCount = demoState.pairs.filter(p =>
-        p.status === 'ACTIVE' && (p.studentA === toId || p.studentB === toId)
-      ).length;
+      const toCount = activePairs.filter(p => p.studentA === toId || p.studentB === toId).length;
       if (toCount >= 2) return { error: '해당 친구는 이미 최대 페어(2개)를 모두 완료했습니다.' };
 
-      // 동일 친구와 동일 과목 중복 페어 검사
-      const alreadyPairedTogether = demoState.pairs.some(p =>
-        p.status === 'ACTIVE' && p.subjectId === subjectId &&
-        ((p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId))
+      // [예외처리 1: 서로 다른 학생] 과목 불문 동일한 친구와 중복 페어 불가
+      const alreadyWithFriend = activePairs.some(p =>
+        (p.studentA === fromId && p.studentB === toId) || (p.studentA === toId && p.studentB === fromId)
       );
-      if (alreadyPairedTogether) return { error: '이미 해당 친구와 동일 과목 페어가 성사되어 있습니다.' };
+      if (alreadyWithFriend) {
+        return { error: '이미 페어를 맺은 친구와는 두 번째 페어를 맺을 수 없습니다. (반드시 서로 다른 친구와 페어해야 합니다)' };
+      }
+
+      // [예외처리 2: 서로 다른 과목] 내가 이미 해당 과목 페어가 있는지
+      const fromHasSubject = activePairs.some(p =>
+        p.subjectId === subjectId && (p.studentA === fromId || p.studentB === fromId)
+      );
+      if (fromHasSubject) {
+        return { error: '이미 해당 과목의 페어를 완료했습니다. (서로 다른 과목으로 페어해야 합니다)' };
+      }
+
+      // [예외처리 3: 서로 다른 과목] 상대방이 이미 해당 과목 페어가 있는지
+      const toHasSubject = activePairs.some(p =>
+        p.subjectId === subjectId && (p.studentA === toId || p.studentB === toId)
+      );
+      if (toHasSubject) {
+        return { error: '해당 친구는 이미 해당 과목의 페어를 완료했습니다.' };
+      }
 
       // 동일 상대에게 대기 중인 신청 검사
       const hasPending = demoState.requests.some(r =>
@@ -298,18 +323,40 @@ export function handleDemoApi(action, params) {
         return { error: '신청 변경 기간이 마감되었습니다.' };
       }
 
+      const activePairs = demoState.pairs.filter(p => p.status === 'ACTIVE');
+
       // 최대 2개 페어 검사
-      const fromCount = demoState.pairs.filter(p =>
-        p.status === 'ACTIVE' && (p.studentA === req.fromId || p.studentB === req.fromId)
-      ).length;
+      const fromCount = activePairs.filter(p => p.studentA === req.fromId || p.studentB === req.fromId).length;
       if (fromCount >= 2) {
         return { error: '신청 학생이 이미 최대 페어(2개)를 모두 완료했습니다.' };
       }
-      const toCount = demoState.pairs.filter(p =>
-        p.status === 'ACTIVE' && (p.studentA === req.toId || p.studentB === req.toId)
-      ).length;
+      const toCount = activePairs.filter(p => p.studentA === req.toId || p.studentB === req.toId).length;
       if (toCount >= 2) {
         return { error: '이미 최대 페어(2개)를 모두 완료했습니다.' };
+      }
+
+      // [예외처리 1: 서로 다른 학생] 과목 불문 동일한 친구와 중복 수락 차단
+      const alreadyPartner = activePairs.some(p =>
+        (p.studentA === req.fromId && p.studentB === req.toId) || (p.studentA === req.toId && p.studentB === req.fromId)
+      );
+      if (alreadyPartner) {
+        return { error: '이미 해당 친구와 다른 과목에서 페어가 성사되어 있습니다. 페어는 반드시 서로 다른 학생과 맺어야 합니다.' };
+      }
+
+      // [예외처리 2: 서로 다른 과목] 수락자(나)가 이미 해당 과목 페어가 있는지 차단
+      const toHasSubject = activePairs.some(p =>
+        p.subjectId === req.subjectId && (p.studentA === req.toId || p.studentB === req.toId)
+      );
+      if (toHasSubject) {
+        return { error: '이미 해당 과목의 페어를 완료하여, 같은 과목에 대한 다른 신청서는 수락할 수 없습니다.' };
+      }
+
+      // [예외처리 3: 서로 다른 과목] 신청 학생이 이미 해당 과목 페어가 있는지 차단
+      const fromHasSubject = activePairs.some(p =>
+        p.subjectId === req.subjectId && (p.studentA === req.fromId || p.studentB === req.fromId)
+      );
+      if (fromHasSubject) {
+        return { error: '신청 학생이 이미 해당 과목의 페어를 완료하여 수락할 수 없습니다.' };
       }
 
       req.status = 'ACCEPTED';
@@ -325,18 +372,23 @@ export function handleDemoApi(action, params) {
       };
       demoState.pairs.push(pair);
 
-      // 성사 후 2개 페어가 꽉 찬 학생의 남은 PENDING 신청만 정리
+      // 성사 후 정리 작업:
+      // 1) 2개 페어가 꽉 찬 학생의 남은 PENDING 신청 취소
+      // 2) 이번 과목에 대한 fromId, toId의 다른 PENDING 신청 취소
+      // 3) fromId와 toId 사이의 남아있는 다른 과목 PENDING 신청 취소
       const newFromCount = fromCount + 1;
       const newToCount = toCount + 1;
 
       demoState.requests.forEach(r => {
         if (r.requestId !== requestId && r.status === 'PENDING') {
-          if (newFromCount >= 2 && (r.fromId === req.fromId || r.toId === req.fromId)) {
-            r.status = 'CANCELLED';
-          }
-          if (newToCount >= 2 && (r.fromId === req.toId || r.toId === req.toId)) {
-            r.status = 'CANCELLED';
-          }
+          const involvesFrom = (r.fromId === req.fromId || r.toId === req.fromId);
+          const involvesTo = (r.fromId === req.toId || r.toId === req.toId);
+          const betweenBoth = (r.fromId === req.fromId && r.toId === req.toId) || (r.fromId === req.toId && r.toId === req.fromId);
+
+          if (newFromCount >= 2 && involvesFrom) r.status = 'CANCELLED';
+          if (newToCount >= 2 && involvesTo) r.status = 'CANCELLED';
+          if (r.subjectId === req.subjectId && (involvesFrom || involvesTo)) r.status = 'CANCELLED';
+          if (betweenBoth) r.status = 'CANCELLED';
         }
       });
 
@@ -428,53 +480,195 @@ export function handleDemoApi(action, params) {
       return { ok: true };
     }
 
-    case 'autoMatchUnpairedStudents': {
-      // 짝이 2개 미만인 학생들 수집
-      const studentPairCount = {};
-      DEMO_STUDENTS.forEach(s => { studentPairCount[s.studentId] = 0; });
-      demoState.pairs.filter(p => p.status === 'ACTIVE').forEach(p => {
-        studentPairCount[p.studentA] = (studentPairCount[p.studentA] || 0) + 1;
-        studentPairCount[p.studentB] = (studentPairCount[p.studentB] || 0) + 1;
-      });
+    case 'previewAutoMatch': {
+      const activePairs = demoState.pairs.filter(p => p.status === 'ACTIVE');
+      const activeSubjects = DEMO_SUBJECTS.filter(s => s.active);
 
-      // 짝이 없는 학생들 (0개 우선, 1개 다음)
-      const needMatch = DEMO_STUDENTS.filter(s => (studentPairCount[s.studentId] || 0) < 2);
-      if (needMatch.length < 2) {
-        return { ok: true, matchedCount: 0, message: '자동 매칭할 대상 학생이 2명 미만입니다.' };
+      if (activeSubjects.length === 0) {
+        return { error: '활성화된 과목이 없습니다.' };
       }
 
-      // 무작위 셔플
-      const shuffled = [...needMatch].sort(() => Math.random() - 0.5);
-      const activeSubjects = DEMO_SUBJECTS.filter(s => s.active);
-      const defSubject = activeSubjects[0] || { subjectId: 'korean' };
+      const studentMeta = {};
+      DEMO_STUDENTS.forEach(s => {
+        studentMeta[s.studentId] = {
+          student: s,
+          pairCount: 0,
+          pairedSubjects: new Set(),
+          pairedPartners: new Set(),
+        };
+      });
 
-      let matchedCount = 0;
-      for (let i = 0; i < shuffled.length - 1; i += 2) {
-        const studentA = shuffled[i].studentId;
-        const studentB = shuffled[i + 1].studentId;
-        
-        // 이미 둘이 페어인지 검사
-        const already = demoState.pairs.some(p =>
-          p.status === 'ACTIVE' &&
-          ((p.studentA === studentA && p.studentB === studentB) || (p.studentA === studentB && p.studentB === studentA))
-        );
-        if (!already) {
-          const newPair = {
-            pairId: 'pair_auto_' + Date.now() + '_' + i,
-            subjectId: defSubject.subjectId,
-            studentA,
-            studentB,
+      activePairs.forEach(p => {
+        if (studentMeta[p.studentA]) {
+          studentMeta[p.studentA].pairCount++;
+          studentMeta[p.studentA].pairedSubjects.add(p.subjectId);
+          studentMeta[p.studentA].pairedPartners.add(p.studentB);
+        }
+        if (studentMeta[p.studentB]) {
+          studentMeta[p.studentB].pairCount++;
+          studentMeta[p.studentB].pairedSubjects.add(p.subjectId);
+          studentMeta[p.studentB].pairedPartners.add(p.studentA);
+        }
+      });
+
+      const candidateIds = Object.keys(studentMeta).filter(id => studentMeta[id].pairCount < 2);
+      if (candidateIds.length < 2) {
+        return {
+          ok: true,
+          previewPairs: [],
+          unpairedStudents: candidateIds.map(id => studentMeta[id].student),
+          message: '자동 매칭 대상 학생이 2명 미만입니다.'
+        };
+      }
+
+      const shuffledIds = [...candidateIds].sort(() => Math.random() - 0.5);
+      const previewPairs = [];
+      const assignedInRound = new Set();
+
+      for (let i = 0; i < shuffledIds.length; i++) {
+        const idA = shuffledIds[i];
+        if (assignedInRound.has(idA)) continue;
+        if (studentMeta[idA].pairCount >= 2) continue;
+
+        let partnerId = null;
+        let chosenSubjectId = null;
+
+        for (let j = i + 1; j < shuffledIds.length; j++) {
+          const idB = shuffledIds[j];
+          if (assignedInRound.has(idB)) continue;
+          if (studentMeta[idB].pairCount >= 2) continue;
+
+          // 1. 서로 다른 학생
+          if (studentMeta[idA].pairedPartners.has(idB) || studentMeta[idB].pairedPartners.has(idA)) {
+            continue;
+          }
+
+          // 2. 서로 다른 과목 (둘 다 아직 하지 않은 과목)
+          const commonSubs = activeSubjects.filter(s =>
+            !studentMeta[idA].pairedSubjects.has(s.subjectId) &&
+            !studentMeta[idB].pairedSubjects.has(s.subjectId)
+          );
+
+          if (commonSubs.length > 0) {
+            partnerId = idB;
+            chosenSubjectId = commonSubs[0].subjectId;
+            break;
+          }
+        }
+
+        if (partnerId && chosenSubjectId) {
+          assignedInRound.add(idA);
+          assignedInRound.add(partnerId);
+
+          studentMeta[idA].pairCount++;
+          studentMeta[idA].pairedSubjects.add(chosenSubjectId);
+          studentMeta[idA].pairedPartners.add(partnerId);
+
+          studentMeta[partnerId].pairCount++;
+          studentMeta[partnerId].pairedSubjects.add(chosenSubjectId);
+          studentMeta[partnerId].pairedPartners.add(idA);
+
+          previewPairs.push({
+            tempId: 'preview_' + Date.now() + '_' + previewPairs.length,
+            subjectId: chosenSubjectId,
+            studentA: idA,
+            studentB: partnerId,
             target: 180,
-            baseRange: 5,
-            status: 'ACTIVE',
-            createdAt: new Date().toISOString()
-          };
-          demoState.pairs.push(newPair);
-          matchedCount++;
+          });
         }
       }
 
-      return { ok: true, matchedCount };
+      const unpairedStudents = DEMO_STUDENTS.filter(s =>
+        (studentMeta[s.studentId]?.pairCount || 0) < 2 && !assignedInRound.has(s.studentId)
+      );
+
+      return {
+        ok: true,
+        previewPairs,
+        unpairedStudents,
+        totalCandidates: candidateIds.length,
+        matchedCount: previewPairs.length
+      };
+    }
+
+    case 'saveAutoMatchedPairs': {
+      const listToSave = params.pairs || [];
+      if (!Array.isArray(listToSave) || listToSave.length === 0) {
+        return { error: '저장할 매칭 데이터가 없습니다.' };
+      }
+
+      const activePairs = demoState.pairs.filter(p => p.status === 'ACTIVE');
+      const studentPairCount = {};
+      const studentSubjects = {};
+      const pairPartners = new Set();
+
+      activePairs.forEach(p => {
+        studentPairCount[p.studentA] = (studentPairCount[p.studentA] || 0) + 1;
+        studentPairCount[p.studentB] = (studentPairCount[p.studentB] || 0) + 1;
+
+        if (!studentSubjects[p.studentA]) studentSubjects[p.studentA] = new Set();
+        if (!studentSubjects[p.studentB]) studentSubjects[p.studentB] = new Set();
+        studentSubjects[p.studentA].add(p.subjectId);
+        studentSubjects[p.studentB].add(p.subjectId);
+
+        pairPartners.add(`${p.studentA}::${p.studentB}`);
+        pairPartners.add(`${p.studentB}::${p.studentA}`);
+      });
+
+      let savedCount = 0;
+      for (let i = 0; i < listToSave.length; i++) {
+        const { studentA, studentB, subjectId, target } = listToSave[i];
+        if (!studentA || !studentB || !subjectId) continue;
+        if (studentA === studentB) {
+          return { error: `[#${i + 1}팀] 동일한 학생끼리는 페어를 맺을 수 없습니다.` };
+        }
+        if ((studentPairCount[studentA] || 0) >= 2) {
+          return { error: `[#${i + 1}팀] 학생은 이미 2개 페어가 완료되었습니다.` };
+        }
+        if ((studentPairCount[studentB] || 0) >= 2) {
+          return { error: `[#${i + 1}팀] 학생은 이미 2개 페어가 완료되었습니다.` };
+        }
+        if (pairPartners.has(`${studentA}::${studentB}`)) {
+          return { error: `[#${i + 1}팀] 두 학생은 이미 페어되어 있어 중복 매칭할 수 없습니다.` };
+        }
+        if (studentSubjects[studentA] && studentSubjects[studentA].has(subjectId)) {
+          return { error: `[#${i + 1}팀] 학생은 이미 해당 과목 페어가 있습니다.` };
+        }
+        if (studentSubjects[studentB] && studentSubjects[studentB].has(subjectId)) {
+          return { error: `[#${i + 1}팀] 학생은 이미 해당 과목 페어가 있습니다.` };
+        }
+
+        studentPairCount[studentA] = (studentPairCount[studentA] || 0) + 1;
+        studentPairCount[studentB] = (studentPairCount[studentB] || 0) + 1;
+        if (!studentSubjects[studentA]) studentSubjects[studentA] = new Set();
+        if (!studentSubjects[studentB]) studentSubjects[studentB] = new Set();
+        studentSubjects[studentA].add(subjectId);
+        studentSubjects[studentB].add(subjectId);
+        pairPartners.add(`${studentA}::${studentB}`);
+        pairPartners.add(`${studentB}::${studentA}`);
+
+        demoState.pairs.push({
+          pairId: 'pair_auto_' + Date.now() + '_' + i,
+          subjectId,
+          studentA,
+          studentB,
+          target: Number(target || 180),
+          baseRange: 5,
+          status: 'ACTIVE',
+          createdAt: new Date().toISOString()
+        });
+        savedCount++;
+      }
+
+      return { ok: true, savedCount, message: `${savedCount}개의 페어가 성공적으로 저장되었습니다.` };
+    }
+
+    case 'autoMatchUnpairedStudents': {
+      const previewRes = handleDemoApi('previewAutoMatch', params);
+      if (!previewRes.ok || previewRes.previewPairs.length === 0) {
+        return previewRes;
+      }
+      return handleDemoApi('saveAutoMatchedPairs', { pairs: previewRes.previewPairs });
     }
 
     case 'setGlobalApplicationStatus': {

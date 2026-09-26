@@ -120,6 +120,8 @@ export const api = {
   deleteSubject: (subjectId) => callApiPost('deleteSubject', { subjectId }),
   resetStudentPin: (studentId, studentNumber = '') => callApiPost('resetStudentPin', { studentId, studentNumber }),
   autoMatchUnpairedStudents: () => callApiPost('autoMatchUnpairedStudents'),
+  previewAutoMatch: () => callApiPost('previewAutoMatch'),
+  saveAutoMatchedPairs: (pairs) => callApiPost('saveAutoMatchedPairs', { pairs }),
   uploadExamResults: (data) => callApiPost('uploadExamResults', { data }),
   calculateResults: () => callApiPost('calculateResults'),
   getAllResults: () => callApi('getAllResults'),

@@ -216,6 +216,16 @@ export function uploadSubjects(subjects) {
   return callApiPost('uploadSubjects', { subjects });
 }
 
+/** 관리자: 미응모 학생 자동 매칭 미리보기 */
+export function previewAutoMatch() {
+  return callApiPost('previewAutoMatch');
+}
+
+/** 관리자: 교사가 확정한 자동 매칭 페어 목록 일괄 저장 */
+export function saveAutoMatchedPairs(pairs) {
+  return callApiPost('saveAutoMatchedPairs', { pairs });
+}
+
 /** 시험 점수 업로드 */
 export function uploadExamResults(data) {
   return callApiPost('uploadExamResults', { data });

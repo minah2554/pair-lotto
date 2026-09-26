@@ -1414,6 +1414,16 @@ tr:hover td {
   justify-content: flex-end;
 }
 
+.photo-modal-box {
+  max-width: 800px !important;
+  width: 95vw !important;
+}
+
+.automatch-modal-box {
+  max-width: 920px !important;
+  width: 96vw !important;
+}
+
 /* ---------- 로딩 ---------- */
 .loading-spinner {
   display: flex;
