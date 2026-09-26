@@ -5,6 +5,7 @@
 import { api } from '../services/index.js';
 import { state, saveSession, notify } from '../state.js';
 import { el, showToast, getFooterHTML } from '../utils/helpers.js';
+import { TEXTS } from '../texts.js';
 
 export function renderLogin(container) {
   container.innerHTML = '';
@@ -19,36 +20,36 @@ export function renderLogin(container) {
       <div class="login-logo">
         <img src="/logo-lotto.svg" alt="PAIR LOTTO 로고" style="width: 64px; height: 64px; object-fit: contain;" />
       </div>
-      <h1 class="login-title" id="board-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 32px; margin-bottom: 2px; cursor: pointer; user-select: none;" title="PAIR LOTTO">PAIR LOTTO</h1>
-      <p class="login-subtitle">시험기간 점수 예측 활동</p>
+      <h1 class="login-title" id="board-title" style="font-family: 'BcCardFont', sans-serif; font-weight: 700; font-size: 32px; margin-bottom: 2px; cursor: pointer; user-select: none;" title="${TEXTS.brand.appTitle}">${TEXTS.brand.appTitle}</h1>
+      <p class="login-subtitle">${TEXTS.brand.appSubtitle}</p>
     </div>
 
     <!-- 2. 게임 설명 (학번/PIN 입력 전 먼저 읽도록 배치) -->
     <div class="login-guide-banner">
       <div class="guide-header">
-        <span class="guide-badge">⚡ HOW TO PLAY</span>
-        <span class="guide-title">PAIR LOTTO 진행 방식</span>
+        <span class="guide-badge">${TEXTS.login.howToPlayBadge}</span>
+        <span class="guide-title">${TEXTS.login.howToPlayTitle}</span>
       </div>
       <div class="guide-steps-list">
         <div class="guide-step-item">
           <span class="step-num">1</span>
           <div class="step-detail">
-            <strong>친구와 페어 맺기</strong>
-            <p>공부 짝꿍과 과목별 목표 합산 점수(TARGET)를 정해 신청해요 (1인당 최대 2개 페어 가능)</p>
+            <strong>${TEXTS.login.step1Title}</strong>
+            <p>${TEXTS.login.step1Desc}</p>
           </div>
         </div>
         <div class="guide-step-item">
           <span class="step-num">2</span>
           <div class="step-detail">
-            <strong>퀘스트 인증 & 버프 UP</strong>
-            <p>예상문제 공유, 오답정리 사진을 인증하면 당첨 오차 범위(BONUS)가 넓어져요</p>
+            <strong>${TEXTS.login.step2Title}</strong>
+            <p>${TEXTS.login.step2Desc}</p>
           </div>
         </div>
         <div class="guide-step-item">
           <span class="step-num">3</span>
           <div class="step-detail">
-            <strong>시험 후 로또 결과 오픈!</strong>
-            <p>성적 발표 후 두 사람 점수 합계가 TARGET 범위에 들면 JACKPOT 당첨!</p>
+            <strong>${TEXTS.login.step3Title}</strong>
+            <p>${TEXTS.login.step3Desc}</p>
           </div>
         </div>
       </div>
@@ -57,47 +58,47 @@ export function renderLogin(container) {
     <!-- 3. 접속 폼 (로그인 / 초기 비밀번호 설정) -->
     <div id="loginStep" class="login-form">
       <div class="form-group">
-        <label class="form-label">학번 (4자리)</label>
-        <input type="text" id="loginStudentNumber" class="form-input" placeholder="예: 2201" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label class="form-label">${TEXTS.login.studentNumberLabel}</label>
+        <input type="text" id="loginStudentNumber" class="form-input" placeholder="${TEXTS.login.studentNumberPlaceholder}" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <div class="form-group">
-        <label class="form-label">비밀번호 (4자리)</label>
-        <input type="password" id="loginPin" class="form-input" placeholder="비밀번호 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label class="form-label">${TEXTS.login.pinLabel}</label>
+        <input type="password" id="loginPin" class="form-input" placeholder="${TEXTS.login.pinPlaceholder}" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
-      <button id="loginBtn" class="btn btn-gold btn-lg btn-wide">로그인</button>
+      <button id="loginBtn" class="btn btn-gold btn-lg btn-wide">${TEXTS.login.loginButton}</button>
     </div>
 
     <div class="login-divider">또는</div>
 
     <div class="login-form">
-      <button id="setupBtn" class="btn btn-ghost btn-wide">처음이에요 (초기 비밀번호 설정)</button>
+      <button id="setupBtn" class="btn btn-ghost btn-wide">${TEXTS.login.firstTimeButton}</button>
     </div>
 
     <div id="setupStep" class="login-form hidden">
       <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
-        <div style="color:var(--gold); font-weight:800; font-size:13px; margin-bottom:2px;">⚠️ 초기 비밀번호 필수 안내</div>
+        <div style="color:var(--gold); font-weight:800; font-size:13px; margin-bottom:2px;">${TEXTS.login.setupGuideTitle}</div>
         <div style="color:var(--text); font-size:11.5px; line-height:1.45;">
-          설정한 초기 비밀번호는 앞으로 로그인할 때 계속 사용되므로 <b>꼭 기억하고 있어야 합니다!</b>
+          ${TEXTS.login.setupGuideText}
         </div>
       </div>
       <div class="form-group">
-        <label class="form-label">학번 (4자리)</label>
-        <input type="text" id="setupStudentNumber" class="form-input" placeholder="예: 2201" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <label class="form-label">${TEXTS.login.studentNumberLabel}</label>
+        <input type="text" id="setupStudentNumber" class="form-input" placeholder="${TEXTS.login.studentNumberPlaceholder}" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <div class="form-group">
-        <label class="form-label">이름</label>
-        <input type="text" id="setupStudentName" class="form-input" placeholder="이름 입력" />
+        <label class="form-label">${TEXTS.login.nameLabel}</label>
+        <input type="text" id="setupStudentName" class="form-input" placeholder="${TEXTS.login.namePlaceholder}" />
       </div>
       <div class="form-group">
-        <label class="form-label">초기 비밀번호 (4자리 숫자)</label>
+        <label class="form-label">${TEXTS.login.setupPinLabel}</label>
         <input type="password" id="setupPin" class="form-input" placeholder="비밀번호 4자리 설정" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <div class="form-group">
-        <label class="form-label">초기 비밀번호 확인</label>
+        <label class="form-label">${TEXTS.login.setupPinConfirmLabel}</label>
         <input type="password" id="setupPinConfirm" class="form-input" placeholder="비밀번호 다시 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
-      <button id="setupSubmitBtn" class="btn btn-primary btn-lg btn-wide">초기 비밀번호 설정하고 시작</button>
-      <button id="setupBackBtn" class="btn btn-ghost btn-wide">돌아가기</button>
+      <button id="setupSubmitBtn" class="btn btn-primary btn-lg btn-wide">${TEXTS.login.setupSubmitButton}</button>
+      <button id="setupBackBtn" class="btn btn-ghost btn-wide">${TEXTS.login.backToLoginButton}</button>
     </div>
   `;
 

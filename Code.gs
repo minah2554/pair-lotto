@@ -144,6 +144,7 @@ function handleAction(action, params) {
     case 'loginStudent': return loginStudent_(params);
     case 'setupPin': return setupPin_(params);
     case 'updateStudentPin': return updateStudentPin_(params);
+    case 'resetStudentPin': return resetStudentPin_(params);
     case 'getStudentHome': return getStudentHome_(params);
     case 'createPairRequest': return createPairRequest_(params);
     case 'getReceivedRequests': return getReceivedRequests_(params);
@@ -168,6 +169,9 @@ function handleAction(action, params) {
     case 'unlockStudentPair': return unlockStudentPair_(params);
     case 'uploadStudents': return uploadStudents_(params);
     case 'uploadSubjects': return uploadSubjects_(params);
+    case 'addSubject': return addSubject_(params);
+    case 'deleteSubject': return deleteSubject_(params);
+    case 'autoMatchUnpairedStudents': return autoMatchUnpairedStudents_(params);
     case 'uploadExamResults': return uploadExamResults_(params);
     case 'calculateResults': return calculateResults_();
     case 'getAllResults': return getAllResults_();
@@ -452,6 +456,26 @@ function updateStudentPin_(params) {
   }
 }
 
+/** 관리자: 학생 PIN 초기화 (학생이 [처음이에요]로 재설정 가능하게 비움) */
+function resetStudentPin_(params) {
+  const { studentId, studentNumber } = params;
+  const cleanNum = formatStudentNumber_(studentNumber);
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getSheet_(SHEETS.STUDENTS);
+    const data = sheet.getDataRange().getValues();
+    const idx = data.findIndex((r, i) => i > 0 && (String(r[0]) === studentId || formatStudentNumber_(r[1]) === cleanNum));
+    if (idx < 0) throw new Error('학생을 찾을 수 없습니다.');
+
+    sheet.getRange(idx + 1, 5).setValue('');
+    return { ok: true, message: '학생 비밀번호가 초기화되었습니다. 학생이 다시 설정할 수 있습니다.' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function uploadStudents_(params) {
   const lines = params.csvData.trim().split('\n');
   if (lines.length < 2) throw new Error('CSV 데이터가 비어있습니다.');
@@ -505,6 +529,44 @@ function getSubjectsList_() {
 
 function getSubjects_() {
   return { ok: true, subjects: getSubjectsList_() };
+}
+
+/** 관리자: 과목 추가 (과목 ID는 영문 불필요, 자동 부여) */
+function addSubject_(params) {
+  const name = String(params.subjectName || '').trim();
+  if (!name) throw new Error('과목명을 입력해주세요.');
+  const maxScore = Number(params.maxScore || 100);
+  const subjectId = params.subjectId || ('sub_' + Date.now());
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getSheet_(SHEETS.SUBJECTS);
+    sheet.appendRow([subjectId, name, maxScore, true]);
+    return { ok: true, subject: { subjectId, subjectName: name, maxScore, active: true } };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 관리자: 과목 삭제 */
+function deleteSubject_(params) {
+  const subjectId = String(params.subjectId || '');
+  if (!subjectId) throw new Error('과목 ID가 누락되었습니다.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const sheet = getSheet_(SHEETS.SUBJECTS);
+    const data = sheet.getDataRange().getValues();
+    const idx = data.findIndex((r, i) => i > 0 && String(r[0]) === subjectId);
+    if (idx < 0) throw new Error('해당 과목을 찾을 수 없습니다.');
+
+    sheet.deleteRow(idx + 1);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ==================== PAIR 신청 ====================
@@ -794,6 +856,54 @@ function unlockStudentPair_(params) {
   }
 }
 
+/** 관리자: 미응모/소외 학생 자동 매칭 (공평한 짝꿍 배정) */
+function autoMatchUnpairedStudents_(params) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const studentsRes = getStudentsList_();
+    const pairsSheet = getSheet_(SHEETS.PAIRS);
+    const pairs = getPairsList_();
+
+    const studentPairCount = {};
+    studentsRes.forEach(s => { studentPairCount[s.studentId] = 0; });
+    pairs.filter(p => p.status === 'ACTIVE').forEach(p => {
+      studentPairCount[p.studentA] = (studentPairCount[p.studentA] || 0) + 1;
+      studentPairCount[p.studentB] = (studentPairCount[p.studentB] || 0) + 1;
+    });
+
+    const needMatch = studentsRes.filter(s => (studentPairCount[s.studentId] || 0) < 2);
+    if (needMatch.length < 2) {
+      return { ok: true, matchedCount: 0, message: '자동 매칭할 대상 학생이 2명 미만입니다.' };
+    }
+
+    const shuffled = needMatch.sort(() => Math.random() - 0.5);
+    const subjects = getSubjectsList_().filter(s => s.active);
+    const defaultSubject = subjects[0] || { subjectId: 'korean' };
+    const baseRange = Number(getSetting_('BASE_RANGE') || 5);
+
+    let matchedCount = 0;
+    for (let i = 0; i < shuffled.length - 1; i += 2) {
+      const studentA = shuffled[i].studentId;
+      const studentB = shuffled[i + 1].studentId;
+
+      const already = pairs.some(p =>
+        p.status === 'ACTIVE' &&
+        ((p.studentA === studentA && p.studentB === studentB) || (p.studentA === studentB && p.studentB === studentA))
+      );
+      if (!already) {
+        const pairId = Utilities.getUuid();
+        pairsSheet.appendRow([pairId, defaultSubject.subjectId, studentA, studentB, 180, baseRange, 'ACTIVE', new Date().toISOString()]);
+        matchedCount++;
+      }
+    }
+
+    return { ok: true, matchedCount };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // ==================== 미션 관리 ====================
 
 function getMissionsList_() {
@@ -855,8 +965,10 @@ function submitMission_(params) {
         const bytes = Utilities.base64Decode(params.base64);
         const blob = Utilities.newBlob(bytes, params.mimeType || 'image/jpeg', params.fileName || 'mission.jpg');
         const file = DriveApp.getFolderById(folderId).createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
         fileId = file.getId();
-        fileUrl = file.getUrl();
+        // 썸네일 URL을 우선 생성하여 img 태그에서 바로 렌더링되도록 처리
+        fileUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w1000';
       }
     }
 

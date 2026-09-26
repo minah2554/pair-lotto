@@ -12,8 +12,11 @@ import { api } from '../services/index.js';
 import { state, clearSession, notify } from '../state.js';
 import { POLL_INTERVAL, TARGET_OPTIONS, BASE_RANGE, BONUS_PER_MISSION } from '../config.js';
 import { el, showToast, showConfirm, showAlertModal, getFooterHTML, resizeImage, formatDate } from '../utils/helpers.js';
+import { TEXTS } from '../texts.js';
 
 let pollTimer = null;
+let lastDataHash = '';
+const revealedCardSet = new Set();
 
 /** 학생 화면 렌더링 */
 export function renderStudent(container) {
@@ -24,7 +27,7 @@ export function renderStudent(container) {
   container.appendChild(shell);
 
   // 데이터 로드
-  loadStudentData();
+  loadStudentData(true);
 
   // Polling 시작
   startPolling();
@@ -33,12 +36,14 @@ export function renderStudent(container) {
   attachStudentEvents(shell);
 }
 
-/** 학생 화면 정리 (Polling 중지) */
+/** 학생 화면 정리 (Polling 중지 및 캐시 초기화) */
 export function cleanupStudent() {
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+  lastDataHash = '';
+  revealedCardSet.clear();
 }
 
 /** 학생 뷰 HTML 빌드 (NEON ARCADE + LOTTO GAME) */
@@ -188,12 +193,30 @@ function buildStudentHTML() {
 }
 
 /** 학생 데이터 로드 */
-async function loadStudentData() {
+async function loadStudentData(force = false) {
   if (!state.student) return;
 
   try {
     const data = await api.getStudentHome(state.student.studentId);
     if (!data.ok) return;
+
+    // 실시간 변경 감지 스냅샷 (데이터 변경이 없으면 불필요한 DOM 재생성을 생략하여 깜빡임 완전 방지)
+    const newHash = JSON.stringify({
+      subjects: data.subjects,
+      students: data.students,
+      applicationStatus: data.applicationStatus,
+      receivedRequests: data.receivedRequests,
+      sentRequests: data.sentRequests,
+      pairs: data.pairs,
+      missionSubmissions: data.missionSubmissions,
+      missions: data.missions,
+      results: data.results,
+    });
+
+    if (!force && newHash === lastDataHash) {
+      return;
+    }
+    lastDataHash = newHash;
 
     // 상태 업데이트
     state.subjects = data.subjects || [];
@@ -210,7 +233,6 @@ async function loadStudentData() {
     updateStudentUI();
   } catch (err) {
     console.error('학생 데이터 로드 실패:', err);
-    showToast('일시적인 연결 오류입니다. 새로고침해주세요.', 'error');
   }
 }
 
@@ -487,20 +509,64 @@ function updateNewRequestForm() {
     }
   }
 
-  // 친구 옵션 갱신 (옵션 구성이 변경된 경우에만 DOM 재구성)
+  // 친구 옵션 갱신 (소외 방지: 아직 짝이 없는 친구 우선 표시 & 2개 완료된 친구 비활성화)
   const otherStudents = state.students.filter(s => s.studentId !== state.student?.studentId);
-  const currentFriendOpts = Array.from(friendSelect.options).map(o => o.value).join('|');
-  const newFriendOpts = [''].concat(otherStudents.map(s => s.studentId)).join('|');
+
+  // 친구별 활성 페어 수 집계
+  const friendPairCount = {};
+  otherStudents.forEach(s => { friendPairCount[s.studentId] = 0; });
+  state.myPairs.forEach(p => {
+    if (p.status === 'ACTIVE') {
+      if (friendPairCount[p.studentA] !== undefined) friendPairCount[p.studentA]++;
+      if (friendPairCount[p.studentB] !== undefined) friendPairCount[p.studentB]++;
+    }
+  });
+
+  // 이미 나와 성사된 페어 대상자 ID 목록
+  const myPartnerIds = state.myPairs
+    .filter(p => p.status === 'ACTIVE')
+    .map(p => (p.studentA === state.student?.studentId ? p.studentB : p.studentA));
+
+  // 소외 방지 정렬: 짝이 0개인 친구 최상단 -> 1개인 친구 -> 2개 완료 친구 순
+  const sortedStudents = [...otherStudents].sort((a, b) => {
+    const countA = friendPairCount[a.studentId] || 0;
+    const countB = friendPairCount[b.studentId] || 0;
+    if (countA !== countB) return countA - countB;
+    return String(a.studentNumber).localeCompare(String(b.studentNumber));
+  });
+
+  const currentFriendOpts = Array.from(friendSelect.options).map(o => o.value + ':' + o.disabled).join('|');
+  const newFriendOpts = [''].concat(sortedStudents.map(s => {
+    const isFull = (friendPairCount[s.studentId] || 0) >= 2;
+    const alreadyWithMe = myPartnerIds.includes(s.studentId);
+    return s.studentId + ':' + (isFull || alreadyWithMe);
+  })).join('|');
 
   if (currentFriendOpts !== newFriendOpts || friendSelect.options.length === 0) {
-    friendSelect.innerHTML = '<option value="">-- 친구 선택 --</option>';
-    otherStudents.forEach(s => {
+    friendSelect.innerHTML = `<option value="">${TEXTS.student.step3.friendSelectDefault}</option>`;
+    sortedStudents.forEach(s => {
+      const pairCount = friendPairCount[s.studentId] || 0;
+      const isFull = pairCount >= 2;
+      const alreadyWithMe = myPartnerIds.includes(s.studentId);
+
       const opt = document.createElement('option');
       opt.value = s.studentId;
-      opt.textContent = `${s.studentNumber} ${s.studentName}`;
+      if (alreadyWithMe) {
+        opt.textContent = `${s.studentNumber} ${s.studentName} (이미 나의 짝꿍)`;
+        opt.disabled = true;
+      } else if (isFull) {
+        opt.textContent = `${s.studentNumber} ${s.studentName} (매칭 완료 2/2)`;
+        opt.disabled = true;
+      } else if (pairCount === 0) {
+        opt.textContent = `✨ ${s.studentNumber} ${s.studentName} (짝꿍 찾는 중)`;
+        opt.disabled = false;
+      } else {
+        opt.textContent = `${s.studentNumber} ${s.studentName} (1개 가능)`;
+        opt.disabled = false;
+      }
       friendSelect.appendChild(opt);
     });
-    if (prevFriend && Array.from(friendSelect.options).some(o => o.value === prevFriend)) {
+    if (prevFriend && Array.from(friendSelect.options).some(o => o.value === prevFriend && !o.disabled)) {
       friendSelect.value = prevFriend;
     }
   }
@@ -653,7 +719,7 @@ function updateResultSection() {
     resultContent.innerHTML = `
       <div class="empty-state">
         <div class="icon">🎯</div>
-        <p>시험이 끝나고 선생님이 점수를 업로드하면 결과를 확인할 수 있어요.</p>
+        <p>${TEXTS.student.step5.emptyText}</p>
       </div>
     `;
     return;
@@ -671,6 +737,8 @@ function updateResultSection() {
                        r.result === 'WIN' ? '🎉 WIN!' :
                        r.result === 'NEAR_MISS' ? '😮 NEAR MISS' : '💫 MISS';
 
+    const isRevealed = revealedCardSet.has(Number(idx));
+
     html += `
       <div style="margin-bottom:8px">
         <span class="badge" style="background:rgba(0,240,255,0.15); color:var(--neon-cyan); font-weight:800; border:1px solid rgba(0,240,255,0.3);">
@@ -679,14 +747,14 @@ function updateResultSection() {
       </div>
 
       <div class="result-card ${resultClass}" id="resultBox-${idx}">
-        <div class="result-unrevealed" id="unrevealed-${idx}">
-          <p style="color:var(--text-secondary); margin-bottom:14px; font-size:14px; text-align:center;">결과 발표가 준비되었습니다!</p>
+        <div class="result-unrevealed ${isRevealed ? 'hidden' : ''}" id="unrevealed-${idx}">
+          <p style="color:var(--text-secondary); margin-bottom:14px; font-size:14px; text-align:center;">${TEXTS.student.step5.readyText}</p>
           <button class="btn btn-gold btn-lg reveal-btn" data-idx="${idx}" style="font-weight:900; font-size:16px; padding:14px 28px; box-shadow:0 0 24px rgba(255,209,102,0.5);">
-            PAIR LOTTO 결과 확인
+            ${TEXTS.student.step5.revealBtn}
           </button>
         </div>
 
-        <div class="result-revealed hidden" id="revealed-${idx}">
+        <div class="result-revealed ${isRevealed ? '' : 'hidden'}" id="revealed-${idx}">
           <div class="score-pair">
             <div>${studentA?.studentName || r.studentA} <b class="score-a">${r.scoreA}</b></div>
             <div style="font-size:24px; font-weight:900; color:var(--gold); align-self:center;">+</div>
@@ -711,15 +779,16 @@ function updateResultSection() {
   // 결과 공개 롤링 애니메이션 버튼 이벤트
   resultContent.querySelectorAll('.reveal-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const idx = btn.dataset.idx;
+      const idx = Number(btn.dataset.idx);
       const unrevealed = document.getElementById(`unrevealed-${idx}`);
       const revealed = document.getElementById(`revealed-${idx}`);
       if (!unrevealed || !revealed) return;
 
       btn.disabled = true;
-      btn.textContent = '🎰 ROLLING...';
+      btn.textContent = TEXTS.student.step5.rollingText;
 
       setTimeout(() => {
+        revealedCardSet.add(idx);
         unrevealed.classList.add('hidden');
         revealed.classList.remove('hidden');
       }, 1000);

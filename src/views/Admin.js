@@ -7,6 +7,8 @@ import { api } from '../services/index.js';
 import { state, clearAdminSession, notify } from '../state.js';
 import { TARGET_OPTIONS, BASE_RANGE, BONUS_PER_MISSION, NEAR_MISS_RANGE } from '../config.js';
 import { el, showToast, showConfirm, parseCSV, getFooterHTML, formatDate } from '../utils/helpers.js';
+import * as XLSX from 'xlsx';
+import { TEXTS } from '../texts.js';
 
 let currentTab = 'dashboard';
 
@@ -141,24 +143,29 @@ function renderDashboard(content) {
   content.innerHTML = `
     <div class="hero-card teacher">
       <div>
-        <p class="eyebrow">관리자 모드</p>
-        <h2>PAIR LOTTO 운영 대시보드</h2>
-        <p class="sub">응모 상태, 미션 인증, 시험 결과와 당첨 현황을 한 번에 관리합니다.</p>
+        <p class="eyebrow">${TEXTS.brand.adminBadge}</p>
+        <h2>${TEXTS.admin.dashboard.title}</h2>
+        <p class="sub">${TEXTS.admin.dashboard.subtitle}</p>
       </div>
-      <button id="toggleLockBtn" class="btn ${state.applicationStatus.globalOpen ? 'btn-danger' : 'btn-success'} btn-lg">
-        ${state.applicationStatus.globalOpen ? '🔒 전체 응모 마감' : '🔓 전체 응모 다시 열기'}
-      </button>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button id="toggleLockBtn" class="btn ${state.applicationStatus.globalOpen ? 'btn-danger' : 'btn-success'} btn-lg">
+          ${state.applicationStatus.globalOpen ? TEXTS.admin.dashboard.closeAllBtn : TEXTS.admin.dashboard.openAllBtn}
+        </button>
+        <button id="autoMatchBtn" class="btn btn-gold btn-lg" style="box-shadow:0 0 16px rgba(255,209,102,0.4);" title="${TEXTS.admin.pairs.autoMatchNotice}">
+          ${TEXTS.admin.dashboard.autoMatchBtn}
+        </button>
+      </div>
     </div>
 
     <div class="stats-grid">
-      <div class="stat"><span>전체 학생</span><b class="sum-num">${stats.totalStudents || 0}</b><span class="unit">명</span></div>
-      <div class="stat"><span>성사 PAIR</span><b class="sum-num">${stats.activePairs || 0}</b><span class="unit">팀</span></div>
-      <div class="stat"><span>대기 신청</span><b class="sum-num">${stats.pendingRequests || 0}</b><span class="unit">건</span></div>
-      <div class="stat"><span>미션 완료</span><b class="sum-num">${stats.completedMissions || 0}</b><span class="unit">건</span></div>
-      <div class="stat"><span>미응모 학생</span><b class="sum-num">${stats.studentsWithoutPairs || 0}</b><span class="unit">명</span></div>
-      <div class="stat"><span>점수 업로드</span><b class="sum-num" style="font-size:26px">${stats.resultsUploaded ? '완료' : '대기'}</b></div>
-      <div class="stat"><span>당첨 PAIR</span><b class="sum-num">${stats.winCount || 0}</b><span class="unit">팀</span></div>
-      <div class="stat"><span>현재 상태</span><b class="sum-num" style="font-size:26px;color:${state.applicationStatus.globalOpen ? 'var(--good)' : 'var(--danger)'}">${state.applicationStatus.globalOpen ? 'OPEN' : 'CLOSE'}</b></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.totalStudents}</span><b class="sum-num">${stats.totalStudents || 0}</b><span class="unit">명</span></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.activePairs}</span><b class="sum-num">${stats.activePairs || 0}</b><span class="unit">팀</span></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.pendingRequests}</span><b class="sum-num">${stats.pendingRequests || 0}</b><span class="unit">건</span></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.completedMissions}</span><b class="sum-num">${stats.completedMissions || 0}</b><span class="unit">건</span></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.unmatchedStudents}</span><b class="sum-num" style="color:var(--warning);">${stats.studentsWithoutPairs || 0}</b><span class="unit">명</span></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.scoreUploadStatus}</span><b class="sum-num" style="font-size:26px">${stats.resultsUploaded ? '완료' : '대기'}</b></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.winningPairs}</span><b class="sum-num">${stats.winCount || 0}</b><span class="unit">팀</span></div>
+      <div class="stat"><span>${TEXTS.admin.dashboard.currentStatus}</span><b class="sum-num" style="font-size:26px;color:${state.applicationStatus.globalOpen ? 'var(--good)' : 'var(--danger)'}">${state.applicationStatus.globalOpen ? 'OPEN' : 'CLOSE'}</b></div>
     </div>
   `;
 
@@ -176,6 +183,26 @@ function renderDashboard(content) {
       showToast(err.message, 'error');
     }
   });
+
+  // 소외 방지 미응모 학생 자동 매칭
+  content.querySelector('#autoMatchBtn')?.addEventListener('click', async () => {
+    const ok = await showConfirm(
+      '아직 짝꿍을 찾지 못한 학생들을 서로 자동으로 연결하여 모두가 참여할 수 있도록 매칭하시겠습니까?\n\n* 이미 2개 페어를 완료한 학생은 제외되며, 짝이 없거나 1명뿐인 학생들끼리 공평하게 배정됩니다.'
+    );
+    if (!ok) return;
+
+    try {
+      const res = await api.autoMatchUnpairedStudents();
+      if (res.matchedCount > 0) {
+        showToast(`🎉 ${res.matchedCount}개의 새로운 짝꿍이 성공적으로 자동 매칭되었습니다!`, 'success');
+      } else {
+        showToast(res.message || '매칭할 대상 학생이 없거나 모두 매칭 완료 상태입니다.', 'info');
+      }
+      await loadAdminData();
+    } catch (err) {
+      showToast(err.message || '자동 매칭에 실패했습니다.', 'error');
+    }
+  });
 }
 
 // ==================== 학생 관리 ====================
@@ -183,23 +210,31 @@ function renderStudentsTab(content) {
   content.innerHTML = `
     <section class="card">
       <div class="card-head">
-        <h3>👥 학생 목록</h3>
+        <h3>${TEXTS.admin.students.title}</h3>
         <span class="badge badge-neutral">${state.students.length}명</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>학번</th><th>이름</th><th>반</th><th>PAIR 수</th><th>관리</th></tr></thead>
+          <thead>
+            <tr>
+              <th>학번</th>
+              <th>이름</th>
+              <th>성사된 PAIR</th>
+              <th>비밀번호 관리</th>
+            </tr>
+          </thead>
           <tbody>
             ${state.students.map(s => {
               const pairCount = (state.myPairs || []).filter(p => (p.studentA === s.studentId || p.studentB === s.studentId) && p.status === 'ACTIVE').length;
               return `
                 <tr>
-                  <td>${s.studentNumber}</td>
+                  <td><b>${s.studentNumber}</b></td>
                   <td>${s.studentName}</td>
-                  <td>${s.classId}</td>
-                  <td>${pairCount}</td>
+                  <td><span class="badge ${pairCount > 0 ? 'badge-open' : 'badge-neutral'}">${pairCount}/2 완료</span></td>
                   <td>
-                    <button class="btn btn-ghost btn-mini reset-pin-btn" data-id="${s.studentId}" data-num="${s.studentNumber}" data-name="${s.studentName}">🔑 PIN 변경</button>
+                    <button class="btn btn-ghost btn-mini reset-pin-btn" data-id="${s.studentId}" data-num="${s.studentNumber}" data-name="${s.studentName}">
+                      ${TEXTS.admin.students.resetPinBtn}
+                    </button>
                   </td>
                 </tr>
               `;
@@ -211,47 +246,67 @@ function renderStudentsTab(content) {
 
     <section class="card">
       <div class="card-head">
-        <h3>📤 학생 CSV 업로드</h3>
+        <h3>${TEXTS.admin.students.uploadTitle}</h3>
+        <span class="badge badge-neutral">엑셀 / CSV 지원</span>
       </div>
       <div class="upload-panel">
-        <input type="file" id="studentCsvFile" accept=".csv" />
-        <button id="uploadStudentCsvBtn" class="btn btn-primary">업로드</button>
+        <input type="file" id="studentFile" accept=".xlsx,.xls,.csv" />
+        <button id="uploadStudentBtn" class="btn btn-primary">명단 업로드</button>
       </div>
-      <p class="help mt-1">형식: studentNumber,studentName,classId (첫 줄은 헤더) · 학생 개인정보(전화번호 등)는 수집하지 않습니다.</p>
+      <p class="help mt-1">${TEXTS.admin.students.uploadHelp}</p>
     </section>
   `;
 
-  // 학생 PIN 변경 이벤트
+  // 학생 PIN 초기화 이벤트 (학생이 직접 [처음이에요]에서 재설정)
   content.querySelectorAll('.reset-pin-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const studentId = btn.dataset.id;
       const studentNumber = btn.dataset.num;
       const studentName = btn.dataset.name;
-      const newPin = window.prompt(`[${studentNumber} ${studentName}] 학생의 새 4자리 PIN을 입력하세요:`, '1234');
-      if (!newPin) return;
-      if (newPin.length !== 4 || isNaN(newPin)) {
-        showToast('PIN은 4자리 숫자여야 합니다.', 'error');
-        return;
-      }
+
+      const ok = await showConfirm(
+        `[${studentNumber} ${studentName}] ${TEXTS.admin.students.resetConfirm}`
+      );
+      if (!ok) return;
+
       try {
-        await api.updateStudentPin(studentId, newPin, studentNumber);
-        showToast(`${studentName} 학생의 PIN이 [${newPin}]로 변경되었습니다.`, 'success');
+        await api.resetStudentPin(studentId, studentNumber);
+        showToast(`${studentName} ${TEXTS.admin.students.resetSuccess}`, 'success');
+        await loadAdminData();
       } catch (err) {
-        showToast(err.message || 'PIN 변경에 실패했습니다.', 'error');
+        showToast(err.message || '초기화에 실패했습니다.', 'error');
       }
     });
   });
 
-  content.querySelector('#uploadStudentCsvBtn')?.addEventListener('click', async () => {
-    const file = document.getElementById('studentCsvFile')?.files[0];
+  // 학생 명단 업로드 (엑셀 및 CSV 완벽 지원)
+  content.querySelector('#uploadStudentBtn')?.addEventListener('click', async () => {
+    const file = document.getElementById('studentFile')?.files[0];
     if (!file) { showToast('파일을 선택해주세요.', 'error'); return; }
-    const text = await file.text();
+
+    const btn = document.getElementById('uploadStudentBtn');
+    btn.disabled = true;
+    btn.textContent = '업로드 중...';
+
     try {
-      await api.uploadStudents(text);
-      showToast('학생 목록이 업로드되었습니다.', 'success');
+      let csvContent = '';
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        csvContent = XLSX.utils.sheet_to_csv(ws);
+      } else {
+        csvContent = await file.text();
+      }
+
+      await api.uploadStudents(csvContent);
+      showToast('학생 명단이 성공적으로 업로드되었습니다.', 'success');
       await loadAdminData();
     } catch (err) {
-      showToast(err.message, 'error');
+      showToast(err.message || '학생 명단 업로드에 실패했습니다.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '명단 업로드';
     }
   });
 }
@@ -259,21 +314,55 @@ function renderStudentsTab(content) {
 // ==================== 과목 관리 ====================
 function renderSubjectsTab(content) {
   content.innerHTML = `
+    <!-- 새 과목 추가 폼 -->
     <section class="card">
       <div class="card-head">
-        <h3>📚 과목 목록</h3>
+        <h3>${TEXTS.admin.subjects.addTitle}</h3>
+        <span class="badge badge-neutral">한글 과목명 지원</span>
+      </div>
+      <div class="form-grid" style="grid-template-columns: 2fr 1fr auto; gap:12px; align-items:flex-end;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">${TEXTS.admin.subjects.nameLabel}</label>
+          <input type="text" id="newSubjectName" class="form-input" placeholder="${TEXTS.admin.subjects.namePlaceholder}" />
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">${TEXTS.admin.subjects.maxScoreLabel}</label>
+          <input type="number" id="newSubjectMaxScore" class="form-input" value="100" min="10" max="1000" />
+        </div>
+        <div>
+          <button id="addSubjectBtn" class="btn btn-primary" style="height:44px; white-space:nowrap;">${TEXTS.admin.subjects.addBtn}</button>
+        </div>
+      </div>
+      <p class="help mt-1" style="color:var(--neon-cyan);">${TEXTS.admin.subjects.autoIdNotice}</p>
+    </section>
+
+    <!-- 과목 목록 -->
+    <section class="card">
+      <div class="card-head">
+        <h3>${TEXTS.admin.subjects.title}</h3>
         <span class="badge badge-neutral">${state.subjects.length}개</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>과목ID</th><th>과목명</th><th>만점</th><th>상태</th></tr></thead>
+          <thead>
+            <tr>
+              <th>과목명</th>
+              <th>만점</th>
+              <th>상태</th>
+              <th>관리</th>
+            </tr>
+          </thead>
           <tbody>
             ${state.subjects.map(s => `
               <tr>
-                <td>${s.subjectId}</td>
-                <td>${s.subjectName}</td>
-                <td>${s.maxScore}</td>
+                <td><b style="font-size:15px; color:var(--text);">${s.subjectName}</b></td>
+                <td>${s.maxScore}점</td>
                 <td><span class="badge ${s.active ? 'badge-open' : 'badge-closed'}">${s.active ? '활성' : '비활성'}</span></td>
+                <td>
+                  <button class="btn btn-danger btn-mini delete-subject-btn" data-id="${s.subjectId}" data-name="${s.subjectName}">
+                    ${TEXTS.admin.subjects.deleteBtn}
+                  </button>
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -281,6 +370,47 @@ function renderSubjectsTab(content) {
       </div>
     </section>
   `;
+
+  // 과목 추가 이벤트
+  content.querySelector('#addSubjectBtn')?.addEventListener('click', async () => {
+    const nameInput = document.getElementById('newSubjectName');
+    const scoreInput = document.getElementById('newSubjectMaxScore');
+    const name = nameInput?.value.trim();
+    const maxScore = Number(scoreInput?.value || 100);
+
+    if (!name) {
+      showToast('과목명을 입력해주세요.', 'error');
+      nameInput?.focus();
+      return;
+    }
+
+    try {
+      await api.addSubject(name, maxScore);
+      showToast(`'${name}' 과목이 성공적으로 추가되었습니다.`, 'success');
+      await loadAdminData();
+    } catch (err) {
+      showToast(err.message || '과목 추가에 실패했습니다.', 'error');
+    }
+  });
+
+  // 과목 삭제 이벤트
+  content.querySelectorAll('.delete-subject-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const subjectId = btn.dataset.id;
+      const subjectName = btn.dataset.name;
+
+      const ok = await showConfirm(`'${subjectName}' ${TEXTS.admin.subjects.deleteConfirm}`);
+      if (!ok) return;
+
+      try {
+        await api.deleteSubject(subjectId);
+        showToast(`'${subjectName}' 과목을 삭제했습니다.`, 'success');
+        await loadAdminData();
+      } catch (err) {
+        showToast(err.message || '과목 삭제에 실패했습니다.', 'error');
+      }
+    });
+  });
 }
 
 // ==================== 응모 관리 ====================
@@ -429,10 +559,10 @@ function renderMissionsTab(content) {
   content.innerHTML = `
     <section class="card">
       <div class="card-head">
-        <h3>📷 미션 인증 확인</h3>
-        <span class="badge badge-neutral">기본 자동 승인 · 필요 시 취소</span>
+        <h3>${TEXTS.admin.missions.title}</h3>
+        <span class="badge badge-neutral">${TEXTS.admin.missions.badge}</span>
       </div>
-      ${approved.length === 0 ? '<div class="empty-state"><p>아직 제출된 미션이 없습니다.</p></div>' : ''}
+      ${approved.length === 0 ? `<div class="empty-state"><p>${TEXTS.admin.missions.empty}</p></div>` : ''}
       <div class="approval-grid">
         ${approved.map(s => {
           const pair = (state.myPairs || []).find(p => p.pairId === s.pairId);
@@ -442,9 +572,22 @@ function renderMissionsTab(content) {
           return `<article>
             <b>${subject?.subjectName || s.subjectId} · ${uploader?.studentName || s.uploaderId}</b>
             <p>${mission?.title || s.missionId} / ${formatDate(s.submittedAt)}</p>
-            <div class="placeholder">인증사진</div>
+            
+            ${s.fileUrl ? `
+              <div class="mission-photo-box" style="margin: 10px 0;">
+                <img src="${s.fileUrl}" alt="인증사진" class="mission-img-preview" style="width:100%; height:160px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.15); cursor:pointer; background:#111827;" data-url="${s.fileUrl}" title="${TEXTS.admin.missions.viewFullPhoto}" />
+                <button type="button" class="btn btn-ghost btn-mini view-photo-btn" data-url="${s.fileUrl}" style="margin-top:6px; width:100%; font-size:11.5px; color:var(--neon-cyan);">
+                  🔍 ${TEXTS.admin.missions.viewFullPhoto}
+                </button>
+              </div>
+            ` : `
+              <div class="placeholder" style="margin:10px 0; border-radius:8px;">📷 ${TEXTS.admin.missions.noPhoto}</div>
+            `}
+
             <div class="row-actions">
-              <button class="btn btn-danger btn-mini revoke-btn" data-id="${s.submissionId}">인증 취소</button>
+              <button class="btn btn-danger btn-mini revoke-btn" data-id="${s.submissionId}">
+                ${TEXTS.admin.missions.revokeBtn}
+              </button>
             </div>
           </article>`;
         }).join('')}
@@ -452,9 +595,19 @@ function renderMissionsTab(content) {
     </section>
   `;
 
+  // 미션 인증 사진 원본 보기 모달 이벤트
+  content.querySelectorAll('.mission-img-preview, .view-photo-btn').forEach(el => {
+    el.addEventListener('click', () => {
+      const url = el.dataset.url;
+      if (!url) return;
+      openPhotoModal(url);
+    });
+  });
+
+  // 인증 취소 이벤트
   content.querySelectorAll('.revoke-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const ok = await showConfirm('이 미션 인증을 취소하시겠습니까?');
+      const ok = await showConfirm(TEXTS.admin.missions.revokeConfirm);
       if (!ok) return;
       try {
         await api.revokeMission(btn.dataset.id);
@@ -467,19 +620,42 @@ function renderMissionsTab(content) {
   });
 }
 
+/** 미션 인증 사진 원본 팝업 */
+function openPhotoModal(imageUrl) {
+  const modal = el('div', { className: 'confirm-modal-overlay' });
+  modal.innerHTML = `
+    <div class="confirm-modal-box" style="max-width: 680px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0; font-size:18px;">📷 미션 인증 사진 원본</h3>
+        <button class="btn btn-ghost btn-mini close-modal-btn">✕ 닫기</button>
+      </div>
+      <div style="flex:1; overflow:auto; display:flex; justify-content:center; align-items:center; background:#000; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+        <img src="${imageUrl}" alt="인증사진 원본" style="max-width:100%; max-height:70vh; object-fit:contain;" />
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const closeModal = () => modal.remove();
+  modal.querySelector('.close-modal-btn')?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+}
+
 // ==================== 시험 점수 ====================
 function renderScoresTab(content) {
   content.innerHTML = `
     <section class="card">
       <div class="card-head">
-        <h3>📊 시험 결과 업로드</h3>
-        <span class="badge badge-neutral">CSV 지원</span>
+        <h3>${TEXTS.admin.scores.title}</h3>
+        <span class="badge badge-neutral">${TEXTS.admin.scores.badge}</span>
       </div>
       <div class="upload-panel">
-        <input id="scoreFile" type="file" accept=".csv,.xlsx,.xls" />
-        <button id="uploadScoreBtn" class="btn btn-primary">업로드 후 자동 판정</button>
+        <input id="scoreFile" type="file" accept=".xlsx,.xls,.csv" />
+        <button id="uploadScoreBtn" class="btn btn-primary">${TEXTS.admin.scores.uploadBtn}</button>
       </div>
-      <p class="help mt-1">형식: 학번, 이름, 국어, 영어, 수학, 과학 (첫 줄은 헤더)</p>
+      <p class="help mt-1">${TEXTS.admin.scores.help}</p>
       <div id="scoreUploadResult" class="hidden"></div>
     </section>
   `;
@@ -493,35 +669,68 @@ function renderScoresTab(content) {
     btn.textContent = '처리 중...';
 
     try {
-      const text = await file.text();
-      const { headers, rows } = parseCSV(text);
+      let rows = [];
+      let headers = [];
 
-      // 학번 컬럼 찾기
-      const numberCol = headers.find(h => h.includes('학번') || h === 'studentNumber') || headers[0];
+      const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+      if (isExcel) {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (rows.length > 0) {
+          headers = Object.keys(rows[0]);
+        }
+      } else {
+        const text = await file.text();
+        const parsed = parseCSV(text);
+        headers = parsed.headers;
+        rows = parsed.rows;
+      }
 
-      // 과목 매핑: 과목명 → subjectId
+      if (rows.length === 0) {
+        throw new Error('파일에 데이터가 없습니다.');
+      }
+
+      // 학번 컬럼 찾기 (학번, studentNumber, student_number 등 유연한 매칭)
+      const numberCol = headers.find(h => {
+        const lower = String(h).toLowerCase().trim();
+        return lower.includes('학번') || lower === 'studentnumber' || lower === 'id';
+      }) || headers[0];
+
+      // 과목 매핑 (과목명 및 subjectId 지원)
       const subjectMap = {};
       state.subjects.forEach(s => {
-        subjectMap[s.subjectName] = s.subjectId;
+        subjectMap[s.subjectName.trim()] = s.subjectId;
+        subjectMap[s.subjectId.trim()] = s.subjectId;
       });
 
-      // 학생-과목 점수 데이터 생성
+      // 학생-과목 점수 데이터 추출
       const examData = [];
       rows.forEach(row => {
         const studentNumber = String(row[numberCol] || '').trim();
         const student = state.students.find(s => s.studentNumber === studentNumber);
         if (!student) return;
 
-        Object.keys(subjectMap).forEach(subjectName => {
-          if (row[subjectName] !== undefined && row[subjectName] !== '') {
-            examData.push({
-              studentId: student.studentId,
-              subjectId: subjectMap[subjectName],
-              score: Number(row[subjectName])
-            });
+        Object.keys(row).forEach(colName => {
+          const cleanCol = colName.trim();
+          const targetSubId = subjectMap[cleanCol];
+          if (targetSubId && row[colName] !== undefined && row[colName] !== '') {
+            const numScore = Number(row[colName]);
+            if (!isNaN(numScore)) {
+              examData.push({
+                studentId: student.studentId,
+                subjectId: targetSubId,
+                score: numScore
+              });
+            }
           }
         });
       });
+
+      if (examData.length === 0) {
+        throw new Error('인식 가능한 학생 학번 및 과목 점수 데이터를 찾지 못했습니다. 학번과 과목명(국어, 영어 등) 헤더를 확인해주세요.');
+      }
 
       // 업로드
       await api.uploadExamResults(examData);
@@ -542,7 +751,7 @@ function renderScoresTab(content) {
       showToast(err.message || '업로드에 실패했습니다.', 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = '업로드 후 자동 판정';
+      btn.textContent = TEXTS.admin.scores.uploadBtn;
     }
   });
 }

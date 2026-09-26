@@ -106,7 +106,7 @@ export const demoState = {
       subjectId: 'science',
       missionId: 'mission01',
       uploaderId: 's2203',
-      fileUrl: '',
+      fileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231a1a2e"/><circle cx="200" cy="120" r="50" fill="%2300f0ff" opacity="0.3"/><text x="200" y="130" fill="%2300f0ff" font-size="24" font-weight="bold" text-anchor="middle">과학 예상문제 3개</text><text x="200" y="180" fill="%23ffffff" font-size="14" text-anchor="middle">짝꿍과 공유한 학습 노트 인증</text><text x="200" y="210" fill="%23ffd166" font-size="12" text-anchor="middle">📸 학생 제출 사진 샘플</text></svg>',
       status: 'APPROVED',
       submittedAt: new Date(Date.now() - 43200000).toISOString(),
     },
@@ -116,7 +116,7 @@ export const demoState = {
       subjectId: 'science',
       missionId: 'mission02',
       uploaderId: 's2204',
-      fileUrl: '',
+      fileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23121829"/><rect x="40" y="40" width="320" height="220" rx="12" fill="%231e293b" stroke="%23b347ff" stroke-width="2"/><text x="200" y="130" fill="%23b347ff" font-size="22" font-weight="bold" text-anchor="middle">오답노트 / 개념 정리</text><text x="200" y="170" fill="%23ffffff" font-size="14" text-anchor="middle">과학 1단원 핵심 개념 요약 완료</text><text x="200" y="205" fill="%2300ff88" font-size="12" text-anchor="middle">✅ 미션 인증 사진 샘플</text></svg>',
       status: 'APPROVED',
       submittedAt: new Date(Date.now() - 21600000).toISOString(),
     },
@@ -196,6 +196,15 @@ export function handleDemoApi(action, params) {
       if (!targetNumber) return { error: '학생을 찾을 수 없습니다.' };
       demoState.pins[targetNumber] = formatPin(newPin);
       return { ok: true, message: '학생 비밀번호가 변경되었습니다.' };
+    }
+
+    case 'resetStudentPin': {
+      const { studentId, studentNumber } = params;
+      const targetNumber = formatStudentNumber(studentNumber) || DEMO_STUDENTS.find(s => s.studentId === studentId)?.studentNumber;
+      if (targetNumber && demoState.pins[targetNumber] !== undefined) {
+        delete demoState.pins[targetNumber];
+      }
+      return { ok: true, message: '학생 비밀번호가 성공적으로 초기화되었습니다.' };
     }
 
     case 'adminLogin': {
@@ -378,18 +387,94 @@ export function handleDemoApi(action, params) {
     }
 
     case 'submitMission': {
+      let fileUrl = '';
+      if (params.base64) {
+        fileUrl = params.base64.startsWith('data:')
+          ? params.base64
+          : `data:${params.mimeType || 'image/jpeg'};base64,${params.base64}`;
+      }
       const sub = {
         submissionId: 'sub' + Date.now(),
         pairId: params.pairId,
         subjectId: params.subjectId,
         missionId: params.missionId,
         uploaderId: params.uploaderId,
-        fileUrl: params.base64 ? 'data:image/jpeg;base64,' + params.base64.substring(0, 50) + '...' : '',
+        fileUrl: fileUrl,
         status: 'APPROVED',
         submittedAt: new Date().toISOString()
       };
       demoState.missionSubmissions.push(sub);
       return { ok: true, submissionId: sub.submissionId };
+    }
+
+    case 'addSubject': {
+      const name = String(params.subjectName || '').trim();
+      if (!name) return { error: '과목명을 입력해주세요.' };
+      const maxScore = Number(params.maxScore || 100);
+      const subjectId = params.subjectId || ('sub_' + Date.now());
+      const newSub = { subjectId, subjectName: name, maxScore, active: true };
+      DEMO_SUBJECTS.push(newSub);
+      demoState.applicationStatus.subjects[subjectId] = true;
+      return { ok: true, subject: newSub };
+    }
+
+    case 'deleteSubject': {
+      const subjectId = params.subjectId;
+      const idx = DEMO_SUBJECTS.findIndex(s => s.subjectId === subjectId);
+      if (idx >= 0) {
+        DEMO_SUBJECTS.splice(idx, 1);
+        delete demoState.applicationStatus.subjects[subjectId];
+      }
+      return { ok: true };
+    }
+
+    case 'autoMatchUnpairedStudents': {
+      // 짝이 2개 미만인 학생들 수집
+      const studentPairCount = {};
+      DEMO_STUDENTS.forEach(s => { studentPairCount[s.studentId] = 0; });
+      demoState.pairs.filter(p => p.status === 'ACTIVE').forEach(p => {
+        studentPairCount[p.studentA] = (studentPairCount[p.studentA] || 0) + 1;
+        studentPairCount[p.studentB] = (studentPairCount[p.studentB] || 0) + 1;
+      });
+
+      // 짝이 없는 학생들 (0개 우선, 1개 다음)
+      const needMatch = DEMO_STUDENTS.filter(s => (studentPairCount[s.studentId] || 0) < 2);
+      if (needMatch.length < 2) {
+        return { ok: true, matchedCount: 0, message: '자동 매칭할 대상 학생이 2명 미만입니다.' };
+      }
+
+      // 무작위 셔플
+      const shuffled = [...needMatch].sort(() => Math.random() - 0.5);
+      const activeSubjects = DEMO_SUBJECTS.filter(s => s.active);
+      const defSubject = activeSubjects[0] || { subjectId: 'korean' };
+
+      let matchedCount = 0;
+      for (let i = 0; i < shuffled.length - 1; i += 2) {
+        const studentA = shuffled[i].studentId;
+        const studentB = shuffled[i + 1].studentId;
+        
+        // 이미 둘이 페어인지 검사
+        const already = demoState.pairs.some(p =>
+          p.status === 'ACTIVE' &&
+          ((p.studentA === studentA && p.studentB === studentB) || (p.studentA === studentB && p.studentB === studentA))
+        );
+        if (!already) {
+          const newPair = {
+            pairId: 'pair_auto_' + Date.now() + '_' + i,
+            subjectId: defSubject.subjectId,
+            studentA,
+            studentB,
+            target: 180,
+            baseRange: 5,
+            status: 'ACTIVE',
+            createdAt: new Date().toISOString()
+          };
+          demoState.pairs.push(newPair);
+          matchedCount++;
+        }
+      }
+
+      return { ok: true, matchedCount };
     }
 
     case 'setGlobalApplicationStatus': {
