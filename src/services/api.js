@@ -270,3 +270,9 @@ export function getSettings() {
 export function updateSettings(settings) {
   return callApiPost('updateSettings', { settings });
 }
+
+/** 전체 기록 초기화 (관리자) */
+export function resetAllRecords() {
+  return callApiPost('resetAllRecords');
+}
+

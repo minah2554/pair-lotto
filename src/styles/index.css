@@ -1395,10 +1395,11 @@ tr:hover td {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 28px 24px;
+  padding: 24px 20px;
   max-width: 400px;
-  width: 100%;
+  width: 90%;
   box-shadow: var(--shadow-lg);
+  margin: 0 auto;
 }
 
 .modal-message {
@@ -1406,6 +1407,9 @@ tr:hover td {
   line-height: 1.6;
   margin-bottom: 20px;
   color: var(--text);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .modal-actions {

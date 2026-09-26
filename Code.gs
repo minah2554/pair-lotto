@@ -184,6 +184,7 @@ function handleAction(action, params) {
     case 'updateSettings': return updateSettings_(params);
     case 'migrateSheetsToKorean': return migrateSheetsToKorean();
     case 'initializeSheets': initializeSheets(); return { ok: true, message: '초기화 완료' };
+    case 'resetAllRecords': return resetAllRecords_();
 
     default:
       throw new Error('알 수 없는 액션: ' + action);
@@ -262,13 +263,10 @@ function getApplicationStatus_() {
 
 function setGlobalApplicationStatus_(params) {
   setSetting_('APPLICATION_OPEN', Boolean(params.open));
-  if (!params.open) {
-    // 전체 CLOSE → 모든 과목도 CLOSE
-    const subjects = getSubjectsList_();
-    subjects.forEach(s => {
-      setSetting_('SUBJECT_' + s.subjectId + '_OPEN', false);
-    });
-  }
+  const subjects = getSubjectsList_();
+  subjects.forEach(s => {
+    setSetting_('SUBJECT_' + s.subjectId + '_OPEN', Boolean(params.open));
+  });
   return { ok: true };
 }
 
@@ -771,28 +769,14 @@ function acceptPairRequest_(params) {
     pairSheet.appendRow([pairId, subjectId, fromId, toId, Number(row[4]), baseRange, 'ACTIVE', new Date().toISOString()]);
 
     // 성사 후 정리 작업:
-    // 1) 2개 페어가 꽉 찬 학생의 남은 PENDING 신청 취소
-    // 2) 이번에 페어 성사된 과목(subjectId)에 대한 fromId, toId의 다른 PENDING 신청 취소
-    // 3) fromId와 toId 사이의 남아있는 다른 과목 PENDING 신청 취소
-    const newFromCount = fromCount + 1;
-    const newToCount = toCount + 1;
+    // 이미 페어가 성사된 두 학생 사이의 다른 PENDING 신청 건만 유효하지 않으므로 취소 처리.
+    // (다른 사람과의 신청이나 다른 과목 신청은 대기 목록에 유지하여 UI에서 수락 불가 사유를 보여줌)
     for (let i = 1; i < data.length; i++) {
       if (i !== idx && String(data[i][5]) === 'PENDING') {
-        const sub = String(data[i][1]);
         const f = String(data[i][2]);
         const t = String(data[i][3]);
-
-        const involvesFrom = (f === fromId || t === fromId);
-        const involvesTo = (f === toId || t === toId);
         const betweenBoth = (f === fromId && t === toId) || (f === toId && t === fromId);
-
-        let shouldCancel = false;
-        if (newFromCount >= 2 && involvesFrom) shouldCancel = true;
-        if (newToCount >= 2 && involvesTo) shouldCancel = true;
-        if (sub === subjectId && (involvesFrom || involvesTo)) shouldCancel = true;
-        if (betweenBoth) shouldCancel = true;
-
-        if (shouldCancel) {
+        if (betweenBoth) {
           sheet.getRange(i + 1, 6).setValue('CANCELLED');
         }
       }
@@ -1606,4 +1590,33 @@ function initializeSheets() {
   }
 
   Logger.log('모든 시트가 한글 탭 및 한글 헤더로 초기화되었습니다.');
+}
+
+function resetAllRecords_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheetsToClear = [
+      SHEETS.PAIR_REQUESTS,
+      SHEETS.PAIRS,
+      SHEETS.MISSION_SUBMISSIONS,
+      SHEETS.EXAM_RESULTS,
+      SHEETS.RESULTS
+    ];
+    
+    sheetsToClear.forEach(sheetName => {
+      const sheet = getSheet_(sheetName);
+      if (sheet) {
+        const data = sheet.getDataRange().getValues();
+        if (data.length > 1) {
+          // 첫번째 행(헤더) 남기고 모두 삭제
+          sheet.getRange(2, 1, data.length - 1, sheet.getLastColumn()).clearContent();
+        }
+      }
+    });
+
+    return { ok: true, message: '모든 기록이 초기화되었습니다. (학생 및 과목 명단 유지)' };
+  } finally {
+    lock.releaseLock();
+  }
 }

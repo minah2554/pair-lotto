@@ -131,4 +131,5 @@ export const api = {
   updateMissions: (missions) => callApiPost('updateMissions', { missions }),
   getSettings: () => callApi('getSettings'),
   updateSettings: (settings) => callApiPost('updateSettings', { settings }),
+  resetAllRecords: () => callApiPost('resetAllRecords'),
 };

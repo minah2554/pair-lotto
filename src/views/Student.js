@@ -49,7 +49,7 @@ export function cleanupStudent() {
 /** 학생 뷰 HTML 빌드 (NEON ARCADE + LOTTO GAME) */
 function buildStudentHTML() {
   const student = state.student;
-  const displayName = student ? `${student.studentNumber} ${student.studentName}` : '';
+  const displayName = student?.studentName ? `${student.studentNumber} ${student.studentName}` : '로딩 중...';
 
   return `
     <!-- 상단바 -->
@@ -62,7 +62,7 @@ function buildStudentHTML() {
         </div>
       </div>
       <div class="top-actions">
-        <div class="player-tag">🎮 <b>${student?.studentNumber || ''}</b> ${student?.studentName || ''}</div>
+        <div class="player-tag" id="topPlayerTag">🎮 ${displayName}</div>
         <button id="refreshBtn" class="btn btn-ghost btn-mini" title="새로고침">🔄</button>
         <button id="logoutBtn" class="btn btn-ghost btn-mini">로그아웃</button>
       </div>
@@ -138,7 +138,7 @@ function buildStudentHTML() {
           <div class="match-vs-box">
             <div class="player-box me">
               <div class="role">나</div>
-              <div class="pname">${displayName}</div>
+              <div class="pname" id="previewMyName">${displayName}</div>
             </div>
             <div class="match-vs-sign">×</div>
             <div class="player-box friend">
@@ -228,6 +228,20 @@ async function loadStudentData(force = false) {
     state.missionSubmissions = data.missionSubmissions || {};
     state.missions = data.missions || [];
     state.results = data.results || [];
+
+    // 최신 학생 데이터로 내 이름 동기화
+    if (state.student) {
+      const me = state.students.find(s => s.studentId === state.student.studentId);
+      if (me) {
+        state.student.studentName = me.studentName;
+        state.student.studentNumber = me.studentNumber;
+        const displayName = `${me.studentNumber} ${me.studentName}`;
+        const topPlayerTag = document.getElementById('topPlayerTag');
+        const previewMyName = document.getElementById('previewMyName');
+        if (topPlayerTag) topPlayerTag.innerHTML = `🎮 ${displayName}`;
+        if (previewMyName) previewMyName.textContent = displayName;
+      }
+    }
 
     // UI 업데이트
     updateStudentUI();

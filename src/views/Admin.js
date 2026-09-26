@@ -569,10 +569,9 @@ function renderMissionsTab(content) {
             
             ${s.fileUrl ? `
               <div class="mission-photo-box" style="margin: 10px 0;">
-                <img src="${s.fileUrl}" alt="인증사진" class="mission-img-preview" style="width:100%; height:160px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.15); cursor:pointer; background:#111827;" data-url="${s.fileUrl}" title="${TEXTS.admin.missions.viewFullPhoto}" />
-                <button type="button" class="btn btn-ghost btn-mini view-photo-btn" data-url="${s.fileUrl}" style="margin-top:6px; width:100%; font-size:11.5px; color:var(--neon-cyan);">
-                  🔍 ${TEXTS.admin.missions.viewFullPhoto}
-                </button>
+                <a href="https://drive.google.com/drive/folders/1aqPUUjQbMTllHDx0HYiKSVJvWY3ymvPR?usp=drive_link" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="width:100%; font-size:13px; color:var(--neon-cyan); border:1px solid rgba(0,240,255,0.3); text-decoration:none; display:flex; justify-content:center; align-items:center; padding:10px; border-radius:8px;">
+                  📁 구글 드라이브에서 사진 확인 ↗
+                </a>
               </div>
             ` : `
               <div class="placeholder" style="margin:10px 0; border-radius:8px;">📷 ${TEXTS.admin.missions.noPhoto}</div>
@@ -589,15 +588,6 @@ function renderMissionsTab(content) {
     </section>
   `;
 
-  // 미션 인증 사진 원본 보기 모달 이벤트
-  content.querySelectorAll('.mission-img-preview, .view-photo-btn').forEach(el => {
-    el.addEventListener('click', () => {
-      const url = el.dataset.url;
-      if (!url) return;
-      openPhotoModal(url);
-    });
-  });
-
   // 인증 취소 이벤트
   content.querySelectorAll('.revoke-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
@@ -611,58 +601,6 @@ function renderMissionsTab(content) {
         showToast(err.message, 'error');
       }
     });
-  });
-}
-
-/** 미션 인증 사진 원본 팝업 (스크립트 오류 수정 및 새 창/닫기 지원) */
-function openPhotoModal(imageUrl) {
-  if (!imageUrl) {
-    showToast('사진 URL이 존재하지 않습니다.', 'error');
-    return;
-  }
-
-  const modal = el('div', { className: 'modal-overlay photo-modal-overlay' });
-  modal.innerHTML = `
-    <div class="modal-box photo-modal-box" style="max-width: 760px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column; padding: 20px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:8px;">
-        <h3 style="margin:0; font-size:17px; font-weight:800; display:flex; align-items:center; gap:6px; color:var(--text);">
-          📷 미션 인증 사진 원본
-        </h3>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <a href="${imageUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-mini" style="font-size:12px; color:var(--neon-cyan); border:1px solid rgba(0,240,255,0.3);" title="새 창에서 원본 보기">
-            새 창으로 열기 ↗
-          </a>
-          <button type="button" class="btn btn-ghost btn-mini close-modal-btn" style="font-size:14px; font-weight:bold; padding:4px 10px;">
-            ✕ 닫기
-          </button>
-        </div>
-      </div>
-      <div style="flex:1; min-height:220px; max-height:72vh; overflow:auto; display:flex; justify-content:center; align-items:center; background:#080914; border-radius:10px; border:1px solid rgba(255,255,255,0.1); padding:10px;">
-        <img src="${imageUrl}" alt="인증사진 원본" style="max-width:100%; max-height:70vh; object-fit:contain; border-radius:6px;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'padding:30px; text-align:center; color:var(--text-secondary);\\'><p style=\\'margin-bottom:10px;\\'>⚠️ 보안 정책상 이미지를 직접 렌더링할 수 없습니다.</p><a href=\\'${imageUrl}\\' target=\\'_blank\\' rel=\\'noopener noreferrer\\' class=\\'btn btn-primary btn-mini\\'>구글 드라이브에서 직접 확인하기 ↗</a></div>';" />
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  // 부드러운 모달 진입 애니메이션
-  requestAnimationFrame(() => {
-    modal.classList.add('show');
-  });
-
-  const closeModal = () => {
-    modal.classList.remove('show');
-    document.removeEventListener('keydown', handleKeydown);
-    setTimeout(() => modal.remove(), 200);
-  };
-
-  const handleKeydown = (e) => {
-    if (e.key === 'Escape') closeModal();
-  };
-  document.addEventListener('keydown', handleKeydown);
-
-  modal.querySelector('.close-modal-btn')?.addEventListener('click', closeModal);
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
   });
 }
 
@@ -876,6 +814,12 @@ function renderSettingsTab(content) {
           <input type="text" id="settingTargets" class="form-input" value="${TARGET_OPTIONS.join(',')}" />
         </div>
         <button id="saveSettingsBtn" class="btn btn-primary btn-wide">설정 저장</button>
+
+        <div class="form-group" style="margin-top: 30px; border-top: 1px solid var(--line); padding-top: 20px;">
+          <h4 style="color:var(--danger); margin-bottom: 10px;">⚠️ 위험 구역</h4>
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">학생 명단과 과목 설정을 제외한 모든 매칭/응모/퀘스트/점수 기록을 완전히 초기화합니다.</p>
+          <button id="resetAllRecordsBtn" class="btn btn-danger btn-wide">전체 기록 초기화 (리셋)</button>
+        </div>
       </div>
     </section>
   `;
@@ -889,6 +833,18 @@ function renderSettingsTab(content) {
         TARGET_OPTIONS: document.getElementById('settingTargets').value,
       });
       showToast('설정이 저장되었습니다.', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
+
+  content.querySelector('#resetAllRecordsBtn')?.addEventListener('click', async () => {
+    const ok = await showConfirm('정말 모든 매칭 및 응모 기록을 초기화하시겠습니까? (학생 명단 제외)\n이 작업은 되돌릴 수 없습니다.');
+    if (!ok) return;
+    try {
+      await api.resetAllRecords();
+      showToast('모든 기록이 초기화되었습니다.', 'success');
+      await loadAdminData();
     } catch (err) {
       showToast(err.message, 'error');
     }

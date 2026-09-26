@@ -373,21 +373,10 @@ export function handleDemoApi(action, params) {
       demoState.pairs.push(pair);
 
       // 성사 후 정리 작업:
-      // 1) 2개 페어가 꽉 찬 학생의 남은 PENDING 신청 취소
-      // 2) 이번 과목에 대한 fromId, toId의 다른 PENDING 신청 취소
-      // 3) fromId와 toId 사이의 남아있는 다른 과목 PENDING 신청 취소
-      const newFromCount = fromCount + 1;
-      const newToCount = toCount + 1;
-
+      // 이미 페어가 맺어진 두 사람 사이의 다른 과목 PENDING 신청만 취소
       demoState.requests.forEach(r => {
         if (r.requestId !== requestId && r.status === 'PENDING') {
-          const involvesFrom = (r.fromId === req.fromId || r.toId === req.fromId);
-          const involvesTo = (r.fromId === req.toId || r.toId === req.toId);
           const betweenBoth = (r.fromId === req.fromId && r.toId === req.toId) || (r.fromId === req.toId && r.toId === req.fromId);
-
-          if (newFromCount >= 2 && involvesFrom) r.status = 'CANCELLED';
-          if (newToCount >= 2 && involvesTo) r.status = 'CANCELLED';
-          if (r.subjectId === req.subjectId && (involvesFrom || involvesTo)) r.status = 'CANCELLED';
           if (betweenBoth) r.status = 'CANCELLED';
         }
       });
@@ -795,6 +784,15 @@ export function handleDemoApi(action, params) {
     case 'updateSettings': {
       Object.assign(demoState.settings, params.settings);
       return { ok: true };
+    }
+
+    case 'resetAllRecords': {
+      demoState.requests = [];
+      demoState.pairs = [];
+      demoState.missionSubmissions = [];
+      demoState.examResults = [];
+      demoState.results = [];
+      return { ok: true, message: '모든 기록이 초기화되었습니다.' };
     }
 
     default:
