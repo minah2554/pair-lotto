@@ -27,14 +27,14 @@ export const TEXTS = {
     step2Desc: '예상문제 공유, 오답정리 사진을 인증하면 당첨 오차 범위(BONUS)가 넓어져요',
     step3Title: '시험 후 로또 결과 오픈!',
     step3Desc: '성적 발표 후 두 사람 점수 합계가 TARGET 범위에 들면 JACKPOT 당첨!',
-    
+
     studentNumberLabel: '학번 (4자리)',
     studentNumberPlaceholder: '예: 2201',
     pinLabel: '비밀번호 (4자리)',
     pinPlaceholder: '비밀번호 입력',
     loginButton: '로그인',
     firstTimeButton: '처음이에요 (초기 비밀번호 설정)',
-    
+
     setupGuideTitle: '⚠️ 초기 비밀번호 필수 안내',
     setupGuideText: '설정한 초기 비밀번호는 앞으로 로그인할 때 계속 사용되므로 꼭 기억하고 있어야 합니다!',
     nameLabel: '이름',

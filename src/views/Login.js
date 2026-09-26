@@ -76,9 +76,10 @@ export function renderLogin(container) {
 
     <div id="setupStep" class="login-form hidden">
       <div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.35); border-radius:10px; padding:10px 12px; margin-bottom:12px;">
-        <div style="color:var(--gold); font-weight:800; font-size:13px; margin-bottom:2px;">${TEXTS.login.setupGuideTitle}</div>
-        <div style="color:var(--text); font-size:11.5px; line-height:1.45;">
-          ${TEXTS.login.setupGuideText}
+        <div style="color:var(--gold); font-weight:800; font-size:13px; margin-bottom:4px;">⚠️ 초기 비밀번호 설정</div>
+        <div style="color:var(--text); font-size:12px; line-height:1.5;">
+          처음 사용하는 경우 비밀번호를 설정합니다.<br/>
+          <b style="color:var(--gold);">설정한 비밀번호는 꼭 기억해두세요!</b>
         </div>
       </div>
       <div class="form-group">
@@ -91,11 +92,11 @@ export function renderLogin(container) {
       </div>
       <div class="form-group">
         <label class="form-label">${TEXTS.login.setupPinLabel}</label>
-        <input type="password" id="setupPin" class="form-input" placeholder="비밀번호 4자리 설정" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <input type="password" id="setupPin" class="form-input" placeholder="숫자 4자리" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <div class="form-group">
         <label class="form-label">${TEXTS.login.setupPinConfirmLabel}</label>
-        <input type="password" id="setupPinConfirm" class="form-input" placeholder="비밀번호 다시 입력" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
+        <input type="password" id="setupPinConfirm" class="form-input" placeholder="비밀번호 확인" maxlength="4" inputmode="numeric" pattern="[0-9]*" />
       </div>
       <button id="setupSubmitBtn" class="btn btn-primary btn-lg btn-wide">${TEXTS.login.setupSubmitButton}</button>
       <button id="setupBackBtn" class="btn btn-ghost btn-wide">${TEXTS.login.backToLoginButton}</button>
@@ -163,6 +164,23 @@ async function handleLogin() {
   btn.disabled = true;
   btn.textContent = '로그인 중...';
 
+  /** 초기 비밀번호 설정 화면으로 자동 전환하는 헬퍼 함수 */
+  function switchToSetup(num) {
+    const loginStep = document.getElementById('loginStep');
+    const setupStep = document.getElementById('setupStep');
+    const divider = document.querySelector('.login-divider');
+    const setupBtnContainer = document.querySelector('#setupBtn')?.parentElement;
+    if (loginStep && setupStep) {
+      loginStep.classList.add('hidden');
+      if (divider) divider.classList.add('hidden');
+      if (setupBtnContainer) setupBtnContainer.classList.add('hidden');
+      setupStep.classList.remove('hidden');
+      const setupStudentNumber = document.getElementById('setupStudentNumber');
+      if (setupStudentNumber) setupStudentNumber.value = num || '';
+      document.getElementById('setupStudentName')?.focus();
+    }
+  }
+
   try {
     const result = await api.loginStudent(studentNumber, pin);
     if (result.ok && result.student) {
@@ -173,21 +191,14 @@ async function handleLogin() {
     }
   } catch (err) {
     const msg = err.message || '로그인에 실패했습니다.';
-    showToast(msg, 'error');
-    if (msg.includes('초기 비밀번호') || msg.includes('처음이에요')) {
-      const loginStep = document.getElementById('loginStep');
-      const setupStep = document.getElementById('setupStep');
-      const setupStudentNumber = document.getElementById('setupStudentNumber');
-      const divider = document.querySelector('.login-divider');
-      const setupBtnContainer = document.querySelector('#setupBtn')?.parentElement;
-      if (loginStep && setupStep) {
-        loginStep.classList.add('hidden');
-        if (divider) divider.classList.add('hidden');
-        if (setupBtnContainer) setupBtnContainer.classList.add('hidden');
-        setupStep.classList.remove('hidden');
-        if (setupStudentNumber) setupStudentNumber.value = studentNumber;
-        document.getElementById('setupStudentName')?.focus();
-      }
+    // 비밀번호가 설정되지 않은 경우 → 토스트 없이 조용히 초기 설정 화면으로 이동
+    const needsSetup = msg.includes('초기 비밀번호') || msg.includes('처음이에요') || msg.includes('needsSetup');
+    if (needsSetup) {
+      showToast('비밀번호가 설정되지 않았습니다. 초기 비밀번호를 설정해주세요.', 'info');
+      switchToSetup(studentNumber);
+    } else {
+      // 비밀번호가 있지만 틀린 경우
+      showToast(msg, 'error');
     }
   } finally {
     btn.disabled = false;
