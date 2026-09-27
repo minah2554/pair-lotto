@@ -57,14 +57,14 @@ export const TEXTS = {
       revealed: 'REVEALED 🏆',
     },
     step1: {
-      title: '📬[STEP 1]도착한 페어 확인',
+      title: '📬도착한 페어 확인',
       empty: '도착한 짝꿍 신청이 없습니다.',
       acceptBtn: '✅ 수락',
       rejectBtn: '거절',
       requestTag: 'CHALLENGE REQUEST',
     },
     step2: {
-      title: '🎟️[STEP 2]PAIR LOTTO 응모권',
+      title: '🎟️ PAIR LOTTO 응모권',
       badge: '최대 2개 페어 가능',
       empty: '과목 데이터를 불러오는 중...',
       unmatchedTitle: '아직 매칭된 짝꿍이 없어요.',
@@ -75,7 +75,7 @@ export const TEXTS = {
       baseRangeText: '기본 당첨범위',
     },
     step3: {
-      title: '💑[STEP 3]페어 친구 선택하기',
+      title: '💑페어 친구 선택하기',
       subjectLabel: '도전할 과목',
       friendLabel: '함께할 짝꿍',
       targetLabel: '목표 합산점수',
@@ -94,7 +94,7 @@ export const TEXTS = {
       badgeOneMore: '1개 완료 (1개 추가 가능)',
     },
     step4: {
-      title: '🎯[STEP 4]페어 미션 퀘스트',
+      title: '🎯페어 미션 퀘스트',
       badgeWaiting: '미션 대기',
       emptyText: '짝꿍과 매칭되면 미션 퀘스트가 열려요!',
       uploadBtn: '📷 사진 인증하기',
@@ -102,7 +102,7 @@ export const TEXTS = {
       bonusBannerTitle: '🔥 미션 보너스 당첨 범위',
     },
     step5: {
-      title: '🏆[STEP 5]PAIR LOTTO 결과 확인',
+      title: '🏆PAIR LOTTO 결과 확인',
       badgeWaiting: '결과 대기',
       emptyText: '선생님이 시험 점수를 입력하면 당첨 결과를 확인할 수 있어요!',
       revealBtn: 'PAIR LOTTO 결과 확인',
