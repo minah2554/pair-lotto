@@ -114,7 +114,7 @@ export function formatStudentNumber(num) {
   return String(num).padStart(4, '0');
 }
 
-/** 학번에서 반/번호 추출 (예: 2201 → 2반 1번) */
+/** 학번에서 반/번호 추출 (예: 4자리 학번 → 학급/번호) */
 export function parseStudentNumber(num) {
   const s = String(num).padStart(4, '0');
   return { class: parseInt(s.slice(0, 2)), number: parseInt(s.slice(2)) };

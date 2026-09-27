@@ -1569,9 +1569,6 @@ function initializeSheets() {
   const studentsSheet = getSheet_(SHEETS.STUDENTS);
   if (studentsSheet.getDataRange().getValues().length <= 1) {
     studentsSheet.appendRow(['학번ID', '학번', '이름', '반', '비밀번호PIN']);
-    studentsSheet.appendRow(['s2201', "'2201", '홍길동', '2-2', '']);
-    studentsSheet.appendRow(['s2202', "'2202", '김민수', '2-2', '']);
-    studentsSheet.appendRow(['s2203', "'2203", '박지훈', '2-2', '']);
   }
 
   // 3. 과목목록 (SUBJECTS)

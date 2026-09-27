@@ -242,20 +242,22 @@ async function loadStudentData(force = false) {
 
     // 최신 학생 데이터로 내 이름 동기화
     if (state.student) {
-      const me = state.students.find(s => s.studentId === state.student.studentId);
-      if (me) {
-        state.student.studentName = me.studentName;
-        state.student.studentNumber = me.studentNumber;
-        const displayName = `${me.studentNumber} ${me.studentName}`;
-        const topPlayerTag = document.getElementById('topPlayerTag');
-        const previewMyName = document.getElementById('previewMyName');
-        if (topPlayerTag) topPlayerTag.innerHTML = `🎮 ${displayName}`;
-        if (previewMyName) previewMyName.textContent = displayName;
-      } else {
-        // 명단에 내가 없으면(삭제됨 등) 자동 로그아웃
-        clearSession();
-        window.location.reload();
-        return;
+      if (state.students && state.students.length > 0) {
+        const me = state.students.find(s => s.studentId === state.student.studentId);
+        if (me) {
+          state.student.studentName = me.studentName;
+          state.student.studentNumber = me.studentNumber;
+          const displayName = `${me.studentNumber} ${me.studentName}`;
+          const topPlayerTag = document.getElementById('topPlayerTag');
+          const previewMyName = document.getElementById('previewMyName');
+          if (topPlayerTag) topPlayerTag.innerHTML = `🎮 ${displayName}`;
+          if (previewMyName) previewMyName.textContent = displayName;
+        } else {
+          // 학생 명단이 정상 로드되었으나 내가 명단에 없으면(삭제됨 등) 자동 로그아웃
+          clearSession();
+          window.location.reload();
+          return;
+        }
       }
     }
 

@@ -22,20 +22,7 @@ export function formatStudentNumber(val) {
   return str;
 }
 
-export const DEMO_STUDENTS = [
-  { studentId: 's2201', studentNumber: '2201', studentName: '홍길동', classId: '2-2' },
-  { studentId: 's2202', studentNumber: '2202', studentName: '김민수', classId: '2-2' },
-  { studentId: 's2203', studentNumber: '2203', studentName: '박지훈', classId: '2-2' },
-  { studentId: 's2204', studentNumber: '2204', studentName: '이도윤', classId: '2-2' },
-  { studentId: 's2205', studentNumber: '2205', studentName: '최현우', classId: '2-2' },
-  { studentId: 's2206', studentNumber: '2206', studentName: '정우진', classId: '2-2' },
-  { studentId: 's2207', studentNumber: '2207', studentName: '강서준', classId: '2-2' },
-  { studentId: 's2208', studentNumber: '2208', studentName: '윤지호', classId: '2-2' },
-  { studentId: 's2209', studentNumber: '2209', studentName: '조예린', classId: '2-2' },
-  { studentId: 's2210', studentNumber: '2210', studentName: '한소희', classId: '2-2' },
-  { studentId: 's2211', studentNumber: '2211', studentName: '배수진', classId: '2-2' },
-  { studentId: 's2212', studentNumber: '2212', studentName: '송하은', classId: '2-2' },
-];
+export const DEMO_STUDENTS = [];
 
 export const DEMO_SUBJECTS = [
   { subjectId: 'korean', subjectName: '국어', maxScore: 100, active: true },
@@ -65,7 +52,7 @@ export const DEMO_MISSIONS = [
   },
 ];
 
-/** 데모 상태 (인메모리) */
+/** 데모 상태 (인메모리) - 더미 학생 데이터 제거된 빈 초기 상태 */
 export const demoState = {
   applicationStatus: {
     globalOpen: true,
@@ -76,54 +63,12 @@ export const demoState = {
       science: true,
     }
   },
-  requests: [
-    {
-      requestId: 'req001',
-      subjectId: 'science',
-      fromId: 's2201',
-      toId: 's2202',
-      target: 180,
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-    }
-  ],
-  pairs: [
-    {
-      pairId: 'pair001',
-      subjectId: 'science',
-      studentA: 's2203',
-      studentB: 's2204',
-      target: 160,
-      baseRange: 5,
-      status: 'ACTIVE',
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-    }
-  ],
-  missionSubmissions: [
-    {
-      submissionId: 'sub001',
-      pairId: 'pair001',
-      subjectId: 'science',
-      missionId: 'mission01',
-      uploaderId: 's2203',
-      fileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%231a1a2e"/><circle cx="200" cy="120" r="50" fill="%2300f0ff" opacity="0.3"/><text x="200" y="130" fill="%2300f0ff" font-size="24" font-weight="bold" text-anchor="middle">과학 예상문제 3개</text><text x="200" y="180" fill="%23ffffff" font-size="14" text-anchor="middle">짝꿍과 공유한 학습 노트 인증</text><text x="200" y="210" fill="%23ffd166" font-size="12" text-anchor="middle">📸 학생 제출 사진 샘플</text></svg>',
-      status: 'APPROVED',
-      submittedAt: new Date(Date.now() - 43200000).toISOString(),
-    },
-    {
-      submissionId: 'sub002',
-      pairId: 'pair001',
-      subjectId: 'science',
-      missionId: 'mission02',
-      uploaderId: 's2204',
-      fileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23121829"/><rect x="40" y="40" width="320" height="220" rx="12" fill="%231e293b" stroke="%23b347ff" stroke-width="2"/><text x="200" y="130" fill="%23b347ff" font-size="22" font-weight="bold" text-anchor="middle">오답노트 / 개념 정리</text><text x="200" y="170" fill="%23ffffff" font-size="14" text-anchor="middle">과학 1단원 핵심 개념 요약 완료</text><text x="200" y="205" fill="%2300ff88" font-size="12" text-anchor="middle">✅ 미션 인증 사진 샘플</text></svg>',
-      status: 'APPROVED',
-      submittedAt: new Date(Date.now() - 21600000).toISOString(),
-    },
-  ],
+  requests: [],
+  pairs: [],
+  missionSubmissions: [],
   examResults: [],
   results: [],
-  pins: {}, // studentNumber -> hashed pin (demo: plain)
+  pins: {}, // studentNumber -> hashed pin
   settings: {
     BASE_RANGE: 5,
     BONUS_PER_MISSION: 1,

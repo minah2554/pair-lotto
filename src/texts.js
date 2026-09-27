@@ -29,7 +29,7 @@ export const TEXTS = {
     step3Desc: '성적 발표 후 두 사람 점수 합계가 TARGET 범위에 들면 JACKPOT 당첨!',
 
     studentNumberLabel: '학번 (4자리)',
-    studentNumberPlaceholder: '예: 2201',
+    studentNumberPlaceholder: '예: 학번 4자리',
     pinLabel: '비밀번호 (4자리)',
     pinPlaceholder: '비밀번호 입력',
     pinNotice: '※ 첫 로그인 시 입력한 비밀번호가 저장됩니다. 꼭 기억하세요!',
