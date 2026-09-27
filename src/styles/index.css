@@ -1327,24 +1327,25 @@ tr:hover td {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(100px);
-  padding: 11px 22px;
-  border-radius: 9999px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  padding: 12px 20px;
+  border-radius: 24px;
   font-weight: 700;
   font-size: 13.5px;
+  line-height: 1.5;
   letter-spacing: -0.01em;
   z-index: 10000;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
   opacity: 0;
-  max-width: 92vw;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
   text-align: center;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(255, 59, 107, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 0, 0, 0.3);
+  display: block;
+  pointer-events: none;
 }
 
 .toast.show {
@@ -1359,17 +1360,21 @@ tr:hover td {
 
 .toast-success {
   background: var(--good);
-  color: white;
+  color: #090a16;
+  font-weight: 800;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 255, 136, 0.4);
 }
 
 .toast-error {
   background: var(--danger);
   color: white;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 42, 133, 0.4);
 }
 
 .toast-warning {
   background: var(--warning);
   color: #1a1a2e;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.4);
 }
 
 /* ---------- 모달 ---------- */
@@ -2442,6 +2447,15 @@ input[type="file"]::file-selector-button:hover {
   .empty-state p {
     padding: 0 10px !important;
     font-size: 13.5px !important;
+  }
+
+  /* 모바일 토스트 알림 화면 잘림 방지 및 가독성 */
+  .toast {
+    bottom: 20px !important;
+    max-width: calc(100% - 32px) !important;
+    padding: 12px 18px !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
   }
 }
 
