@@ -237,13 +237,12 @@ function renderStudentsTab(content) {
           </thead>
           <tbody>
             ${state.students.map(s => {
-              const allPairs = state.pairs || state.myPairs || [];
-              const pairCount = s.pairCount !== undefined ? s.pairCount : allPairs.filter(p => (p.studentA === s.studentId || p.studentB === s.studentId) && p.status === 'ACTIVE').length;
+              const pairCount = (state.myPairs || []).filter(p => (p.studentA === s.studentId || p.studentB === s.studentId) && p.status === 'ACTIVE').length;
               return `
                 <tr>
                   <td><b>${s.studentNumber}</b></td>
                   <td>${s.studentName}</td>
-                  <td><span class="badge ${pairCount >= 2 ? 'badge-open' : pairCount === 1 ? 'badge-warning' : 'badge-neutral'}">${pairCount}/2 ${pairCount >= 2 ? '완료' : '진행 중'}</span></td>
+                  <td><span class="badge ${pairCount > 0 ? 'badge-open' : 'badge-neutral'}">${pairCount}/2 완료</span></td>
                   <td>
                     <button class="btn btn-ghost btn-mini reset-pin-btn" data-id="${s.studentId}" data-num="${s.studentNumber}" data-name="${s.studentName}">
                       ${TEXTS.admin.students.resetPinBtn}
@@ -845,8 +844,8 @@ function renderSettingsTab(content) {
 
         <div class="form-group" style="margin-top: 30px; border-top: 1px solid var(--line); padding-top: 20px;">
           <h4 style="color:var(--danger); margin-bottom: 10px;">⚠️ 위험 구역</h4>
-          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">학생 명단과 과목 설정을 제외한 모든 매칭/응모/퀘스트/점수 기록을 완전히 초기화합니다.</p>
-          <button id="resetAllRecordsBtn" class="btn btn-danger btn-wide">전체 기록 초기화 (리셋)</button>
+          <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">학생 명단과 과목 설정을 제외한 모든 매칭/응모/퀘스트/점수 기록 및 학생 비밀번호를 완전히 초기화합니다. (초기화 후 학생들은 첫 로그인 시 새로운 비밀번호를 설정하게 됩니다)</p>
+          <button id="resetAllRecordsBtn" class="btn btn-danger btn-wide">전체 기록 및 비밀번호 초기화 (리셋)</button>
         </div>
       </div>
     </section>
@@ -867,11 +866,11 @@ function renderSettingsTab(content) {
   });
 
   content.querySelector('#resetAllRecordsBtn')?.addEventListener('click', async () => {
-    const ok = await showConfirm('정말 모든 매칭 및 응모 기록을 초기화하시겠습니까? (학생 명단 제외)\n이 작업은 되돌릴 수 없습니다.');
+    const ok = await showConfirm('정말 모든 매칭, 응모 기록 및 학생 비밀번호를 초기화하시겠습니까? (학생 및 과목 명단은 유지)\n\n* 초기화 시 학생들은 다음 접속 시 새로운 비밀번호를 설정하게 됩니다.\n* 이 작업은 되돌릴 수 없습니다.');
     if (!ok) return;
     try {
       await api.resetAllRecords();
-      showToast('모든 기록이 초기화되었습니다.', 'success');
+      showToast('모든 기록 및 비밀번호가 초기화되었습니다.', 'success');
       await loadAdminData();
     } catch (err) {
       showToast(err.message, 'error');

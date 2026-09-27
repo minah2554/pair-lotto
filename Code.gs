@@ -1649,7 +1649,20 @@ function resetAllRecords_() {
       }
     });
 
-    return { ok: true, message: '모든 기록이 초기화되었습니다. (학생 및 과목 명단 유지)' };
+    // 학생 비밀번호 초기화 (STUDENTS 시트의 pinHash / 비밀번호 컬럼 공백 처리)
+    const studentSheet = getSheet_(SHEETS.STUDENTS);
+    if (studentSheet) {
+      const sData = studentSheet.getDataRange().getValues();
+      if (sData.length > 1) {
+        const header = sData[0].map(h => String(h || '').trim().toLowerCase());
+        let colPin = header.findIndex(h => h === 'pinhash' || h === 'pin' || h === '비밀번호' || h === '핀번호');
+        if (colPin < 0) colPin = 4; // 기본 5번째 열 (0-indexed 4)
+        
+        studentSheet.getRange(2, colPin + 1, sData.length - 1, 1).setValue('');
+      }
+    }
+
+    return { ok: true, message: '모든 매칭/응모 기록 및 학생 비밀번호가 초기화되었습니다. (학생 및 과목 명단 유지)' };
   } finally {
     lock.releaseLock();
   }

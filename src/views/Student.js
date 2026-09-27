@@ -98,12 +98,12 @@ function buildStudentHTML() {
     <!-- 도착한 페어 신청 -->
     <section class="card" id="receivedRequestsSection">
       <div class="card-head">
-        <h3>📬 STEP 1 &nbsp; 도착한 페어 신청</h3>
+        <h3>${TEXTS.student.step1.title}</h3>
         <span class="badge badge-warning" id="requestCount">0</span>
       </div>
       <div id="receivedRequestsList">
         <div class="empty-state">
-          <p style="text-align:center; word-break:keep-all;">도착한 짝꿍 신청이 없습니다.</p>
+          <p style="text-align:center; word-break:keep-all;">${TEXTS.student.step1.empty}</p>
         </div>
       </div>
     </section>
@@ -111,32 +111,32 @@ function buildStudentHTML() {
     <!-- 나의 PAIR LOTTO 응모권 -->
     <section class="card">
       <div class="card-head">
-        <h3>🎟️ STEP 2 &nbsp; 나의 PAIR LOTTO 응모권</h3>
-        <span class="badge badge-neutral">최대 2개 페어 가능</span>
+        <h3>${TEXTS.student.step2.title}</h3>
+        <span class="badge badge-neutral">${TEXTS.student.step2.badge}</span>
       </div>
       <div id="myTickets">
         <div class="loading-spinner"><div class="spinner"></div><p>로딩 중...</p></div>
       </div>
     </section>
 
-    <!-- 나의 짝꿍 선택하기 -->
+    <!-- 페어 친구 선택하기 -->
     <section class="card" id="newRequestSection">
       <div class="card-head">
-        <h3>💑 STEP 3 &nbsp; 나의 짝꿍 선택하기</h3>
+        <h3>${TEXTS.student.step3.title}</h3>
         <span class="badge" id="applyStatusBadge">확인 중</span>
       </div>
       <div class="form-grid">
         <div class="form-grid form-grid-cols">
           <div class="form-group">
-            <label class="form-label">도전할 과목</label>
+            <label class="form-label">${TEXTS.student.step3.subjectLabel}</label>
             <select id="subjectSelect" class="form-select"></select>
           </div>
           <div class="form-group">
-            <label class="form-label">함께할 짝꿍</label>
+            <label class="form-label">${TEXTS.student.step3.friendLabel}</label>
             <select id="friendSelect" class="form-select"></select>
           </div>
           <div class="form-group">
-            <label class="form-label">목표 합산점수</label>
+            <label class="form-label">${TEXTS.student.step3.targetLabel}</label>
             <select id="targetSelect" class="form-select">
               ${TARGET_OPTIONS.map(t => `<option value="${t}"${t === 180 ? ' selected' : ''}>${t}점</option>`).join('')}
             </select>
@@ -145,7 +145,7 @@ function buildStudentHTML() {
 
         <!-- 실시간 매칭 프리뷰 카드 -->
         <div class="match-preview-card">
-          <div class="match-preview-tag" style="text-align:center;">매칭 미리보기</div>
+          <div class="match-preview-tag" style="text-align:center;">${TEXTS.student.step3.previewTag}</div>
           <div class="match-vs-box">
             <div class="player-box me">
               <div class="role">나</div>
@@ -154,7 +154,7 @@ function buildStudentHTML() {
             <div class="match-vs-sign">×</div>
             <div class="player-box friend">
               <div class="role">짝꿍</div>
-              <div class="pname" id="previewFriendName">친구를 선택하세요</div>
+              <div class="pname" id="previewFriendName">${TEXTS.student.step3.previewFriendPlaceholder}</div>
             </div>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
@@ -164,22 +164,22 @@ function buildStudentHTML() {
         </div>
 
         <div>
-          <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">페어 신청 보내기</button>
+          <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">${TEXTS.student.step3.sendRequestBtn}</button>
         </div>
       </div>
-      <p class="help" id="newRequestHelp" style="text-align:center; word-break:keep-all;">신청 기간에는 언제든지 짝꿍을 바꾸거나 취소할 수 있어요.</p>
+      <p class="help" id="newRequestHelp" style="text-align:center; word-break:keep-all;">${TEXTS.student.step3.helpDefault}</p>
     </section>
 
     <!-- 페어 미션 퀘스트 -->
     <section class="card" id="missionSection">
       <div class="card-head">
-        <h3>🎯 STEP 4 &nbsp; 페어 미션 퀘스트</h3>
-        <span class="badge badge-neutral" id="missionBadge">-</span>
+        <h3>${TEXTS.student.step4.title}</h3>
+        <span class="badge badge-neutral" id="missionBadge">${TEXTS.student.step4.badgeWaiting}</span>
       </div>
       <div id="missionContent">
         <div class="empty-state">
           <div class="icon">🤝</div>
-          <p style="text-align:center; word-break:keep-all;">짝꿍과 미션을 함께 완료하면 당첨 범위가 넓어져요!</p>
+          <p style="text-align:center; word-break:keep-all;">${TEXTS.student.step4.emptyText}</p>
         </div>
       </div>
     </section>
@@ -187,13 +187,13 @@ function buildStudentHTML() {
     <!-- PAIR LOTTO 결과 확인 -->
     <section class="card" id="resultSection">
       <div class="card-head">
-        <h3>🏆 STEP 5 &nbsp; PAIR LOTTO 결과 확인</h3>
-        <span class="badge badge-neutral">결과 대기</span>
+        <h3>${TEXTS.student.step5.title}</h3>
+        <span class="badge badge-neutral">${TEXTS.student.step5.badgeWaiting}</span>
       </div>
       <div id="resultContent">
         <div class="empty-state">
           <div class="icon">🎯</div>
-          <p style="text-align:center; word-break:keep-all;">선생님이 시험 점수를 입력하면 당첨 결과를 확인할 수 있어요!</p>
+          <p style="text-align:center; word-break:keep-all;">${TEXTS.student.step5.emptyText}</p>
         </div>
       </div>
     </section>

@@ -69,6 +69,11 @@ export function subscribe(fn) {
 /** 학생 세션 저장 */
 export function saveSession(student) {
   state.student = student;
+  state.myPairs = [];
+  state.receivedRequests = [];
+  state.sentRequests = [];
+  state.missionSubmissions = {};
+  state.results = [];
   localStorage.setItem(SESSION_KEY, JSON.stringify(student));
 }
 
@@ -87,6 +92,11 @@ export function restoreSession() {
 /** 학생 세션 삭제 */
 export function clearSession() {
   state.student = null;
+  state.myPairs = [];
+  state.receivedRequests = [];
+  state.sentRequests = [];
+  state.missionSubmissions = {};
+  state.results = [];
   localStorage.removeItem(SESSION_KEY);
 }
 
