@@ -103,7 +103,7 @@ function buildStudentHTML() {
       </div>
       <div id="receivedRequestsList">
         <div class="empty-state">
-          <p style="text-align:center; word-break:keep-all;">${TEXTS.student.step1.empty}</p>
+          <p style="text-align:center; word-break:keep-all; overflow-wrap:break-word; padding:0 10px; line-height:1.6;">${TEXTS.student.step1.empty}</p>
         </div>
       </div>
     </section>
@@ -167,7 +167,7 @@ function buildStudentHTML() {
           <button id="sendRequest" class="btn btn-primary btn-wide btn-lg" style="height:50px; font-weight:900; font-size:16px; letter-spacing:0.02em;">${TEXTS.student.step3.sendRequestBtn}</button>
         </div>
       </div>
-      <p class="help" id="newRequestHelp" style="text-align:center; word-break:keep-all;">${TEXTS.student.step3.helpDefault}</p>
+      <p class="help" id="newRequestHelp" style="text-align:center; word-break:keep-all; overflow-wrap:break-word; padding:0 10px; line-height:1.6;">${TEXTS.student.step3.helpDefault}</p>
     </section>
 
     <!-- 페어 미션 퀘스트 -->
@@ -179,7 +179,7 @@ function buildStudentHTML() {
       <div id="missionContent">
         <div class="empty-state">
           <div class="icon">🤝</div>
-          <p style="text-align:center; word-break:keep-all;">${TEXTS.student.step4.emptyText}</p>
+          <p style="text-align:center; word-break:keep-all; overflow-wrap:break-word; padding:0 10px; line-height:1.6;">${TEXTS.student.step4.emptyText}</p>
         </div>
       </div>
     </section>
@@ -193,7 +193,7 @@ function buildStudentHTML() {
       <div id="resultContent">
         <div class="empty-state">
           <div class="icon">🎯</div>
-          <p style="text-align:center; word-break:keep-all;">${TEXTS.student.step5.emptyText}</p>
+          <p style="text-align:center; word-break:keep-all; overflow-wrap:break-word; padding:0 10px; line-height:1.6;">${TEXTS.student.step5.emptyText}</p>
         </div>
       </div>
     </section>
@@ -587,6 +587,7 @@ function updateNewRequestForm() {
 
   // 친구 옵션 갱신 (소외 방지: 아직 짝이 없는 친구 우선 표시 & 2개 완료된 친구 / 이미 나와 짝인 친구 비활성화)
   const otherStudents = state.students.filter(s => s.studentId !== state.student?.studentId);
+
   const selectedSubId = subjectSelect.value;
   const selectedSubObj = state.subjects.find(s => s.subjectId === selectedSubId);
   const selectedSubName = selectedSubObj ? selectedSubObj.subjectName : '';
@@ -682,25 +683,25 @@ function updateNewRequestForm() {
     badge.className = 'badge badge-closed closed';
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.45';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--danger); font-weight:700; text-align:center; display:block; word-break:keep-all;">🔒 신청 기간이 마감되어 새로운 신청을 할 수 없습니다.</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--danger); font-weight:700; text-align:center; display:block; word-break:keep-all; overflow-wrap:break-word; padding:0 8px; line-height:1.55;">🔒 신청 기간이 마감되어 새로운 신청을 할 수 없습니다.</span>';
   } else if (activePairsCount >= 2) {
     badge.textContent = '페어 완료 (2/2)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.55';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--warning); font-weight:700; text-align:center; display:block; word-break:keep-all;">⚠️ 짝꿍 2명을 모두 선택했어요. 바꾸려면 위 티켓에서 [페어 끊기]를 먼저 해주세요.</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--warning); font-weight:700; text-align:center; display:block; word-break:keep-all; overflow-wrap:break-word; padding:0 8px; line-height:1.55;">⚠️ 짝꿍 2명을 모두 선택했어요. 바꾸려면 위 티켓에서 [페어 끊기]를 먼저 해주세요.</span>';
   } else if (activePairsCount === 1) {
     badge.textContent = '1개 완료 (1개 추가 가능)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700; text-align:center; display:block; word-break:keep-all;">✨ 1개의 페어가 완료되었어요. 반드시 <b>[서로 다른 친구]</b>, <b>[서로 다른 과목]</b>으로 1명 더 짝꿍을 맺을 수 있어요!</span>';
+    if (helpText) helpText.innerHTML = '<span style="color:var(--neon-cyan); font-weight:700; text-align:center; display:block; word-break:keep-all; overflow-wrap:break-word; padding:0 8px; line-height:1.55;">✨ 1개의 페어가 완료되었어요. 반드시 <b>[서로 다른 친구]</b>, <b>[서로 다른 과목]</b>으로 1명 더 짝꿍을 맺을 수 있어요!</span>';
   } else {
     badge.textContent = '신청 가능 (최대 2개)';
     badge.className = 'badge badge-open open';
     sendBtn.disabled = false;
     sendBtn.style.opacity = '1';
-    if (helpText) helpText.innerHTML = '<span style="text-align:center; display:block; word-break:keep-all;">1인당 최대 2개 페어 가능하며, 반드시 <b>[서로 다른 친구]</b>, <b>[서로 다른 과목]</b>이어야 합니다.</span>';
+    if (helpText) helpText.innerHTML = '<span style="text-align:center; display:block; word-break:keep-all; overflow-wrap:break-word; padding:0 8px; line-height:1.55;">1인당 최대 2개 페어 가능하며, 반드시 <b>[서로 다른 친구]</b>, <b>[서로 다른 과목]</b>이어야 합니다.</span>';
   }
 }
 

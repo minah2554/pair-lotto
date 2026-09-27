@@ -1470,22 +1470,26 @@ tr:hover td {
 }
 
 .empty-state p {
-  font-size: 13.5px;
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.6;
   text-align: center;
   word-break: keep-all;
+  overflow-wrap: break-word;
   margin: 0 auto;
-  max-width: 90%;
+  padding: 0 10px;
+  max-width: 95%;
 }
 
 /* ---------- 도움말 ---------- */
 .help {
   color: var(--muted);
-  font-size: 12px;
-  margin-top: 8px;
-  line-height: 1.5;
+  font-size: 12.5px;
+  margin-top: 10px;
+  line-height: 1.6;
   text-align: center;
   word-break: keep-all;
+  overflow-wrap: break-word;
+  padding: 0 10px;
   display: block;
 }
 
@@ -2421,6 +2425,23 @@ input[type="file"]::file-selector-button:hover {
     font-size: 10.5px !important;
     line-height: 1.35 !important;
     white-space: nowrap !important;
+  }
+
+  /* 모바일 안내 문구 가독성 및 단어 단위 줄바꿈 강화 */
+  .help, .empty-state p, .help span, .card-head h3, .quest-desc, .pin-first-time-notice, .modal-message {
+    word-break: keep-all !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.6 !important;
+  }
+
+  .help {
+    padding: 0 10px !important;
+    font-size: 12px !important;
+  }
+
+  .empty-state p {
+    padding: 0 10px !important;
+    font-size: 13.5px !important;
   }
 }
 
